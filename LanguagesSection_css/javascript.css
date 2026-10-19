@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: JavaScript
+   LanguagesSection_css/javascript.css
+===================================================== */
+
+:root {
+    --brand-javascript: #f7df1e;
+}
+
+.lang-hero-icon.javascript {
+    background: #f7df1e !important;
+    color: #111827 !important;
+    box-shadow: 0 4px 18px #f7df1e44;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #f7df1e;
+}
+
+.code-header .code-lang-label {
+    color: #f7df1e;
+    font-weight: bold;
+}

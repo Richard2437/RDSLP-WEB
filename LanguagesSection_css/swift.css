@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Swift
+   LanguagesSection_css/swift.css
+===================================================== */
+
+:root {
+    --brand-swift: #f05138;
+}
+
+.lang-hero-icon.swift {
+    background: #f05138 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #f0513844;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #f05138;
+}
+
+.code-header .code-lang-label {
+    color: #f05138;
+    font-weight: bold;
+}

@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: PHP
+   LanguagesSection_css/php.css
+===================================================== */
+
+:root {
+    --brand-php: #777bb4;
+}
+
+.lang-hero-icon.php {
+    background: #777bb4 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #777bb444;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #777bb4;
+}
+
+.code-header .code-lang-label {
+    color: #777bb4;
+    font-weight: bold;
+}

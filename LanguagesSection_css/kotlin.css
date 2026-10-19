@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Kotlin
+   LanguagesSection_css/kotlin.css
+===================================================== */
+
+:root {
+    --brand-kotlin: #7f52ff;
+}
+
+.lang-hero-icon.kotlin {
+    background: #7f52ff !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #7f52ff44;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #7f52ff;
+}
+
+.code-header .code-lang-label {
+    color: #7f52ff;
+    font-weight: bold;
+}

@@ -1,0 +1,285 @@
+/* =====================================================
+   RDSLP - Estilos de Lenguajes de Programación
+   LanguagesSection_css/lenguajes.css
+===================================================== */
+
+.lenguajes-container {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.lenguajes-header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.lenguajes-title-group h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.lenguajes-title-group p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.btn-upload-lang {
+    background: var(--accent-primary);
+    color: #ffffff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-upload-lang:hover {
+    background: var(--accent-hover, #4338ca);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Filtros / Búsqueda */
+.lenguajes-search-bar {
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+}
+
+.lenguajes-search-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.lenguajes-search-input:focus {
+    border-color: var(--accent-primary);
+}
+
+/* Grid de Lenguajes */
+.lenguajes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 22px;
+}
+
+/* Tarjeta de Lenguaje */
+.language-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+
+.language-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-primary);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+.language-card-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.language-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+/* Colores de Lenguajes */
+.language-icon.python { background: #3776ab; }
+.language-icon.javascript { background: #f7df1e; color: #1e1e1e; }
+.language-icon.java { background: #e76f00; }
+.language-icon.csharp { background: #68217a; }
+.language-icon.cpp { background: #00599c; }
+.language-icon.go { background: #00add8; }
+.language-icon.rust { background: #dea584; color: #1e1e1e; }
+.language-icon.php { background: #777bb4; }
+.language-icon.swift { background: #f05138; }
+.language-icon.kotlin { background: #7f52ff; }
+.language-icon.typescript { background: #3178c6; }
+.language-icon.ruby { background: #cc342d; }
+.language-icon.custom { background: #6366f1; }
+
+.language-card-title h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.language-card-title span {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.language-card-body p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+.language-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.language-tag {
+    padding: 3px 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.language-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 14px;
+}
+
+.language-rating-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stars-rating-container {
+    display: inline-flex;
+    gap: 3px;
+}
+
+.star-icon {
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.star-icon:hover {
+    transform: scale(1.2);
+}
+
+.rating-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.language-btn {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.language-btn:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #ffffff;
+}
+
+/* Formulario Modal */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.form-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    border-color: var(--accent-primary);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.btn-submit-modal {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 10px;
+}
+
+.btn-submit-modal:hover {
+    background: var(--accent-hover, #4338ca);
+}

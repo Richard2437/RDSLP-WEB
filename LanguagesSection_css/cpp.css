@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: C++
+   LanguagesSection_css/cpp.css
+===================================================== */
+
+:root {
+    --brand-cpp: #00599c;
+}
+
+.lang-hero-icon.cpp {
+    background: #00599c !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #00599c44;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #00599c;
+}
+
+.code-header .code-lang-label {
+    color: #00599c;
+    font-weight: bold;
+}

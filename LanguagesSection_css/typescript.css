@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: TypeScript
+   LanguagesSection_css/typescript.css
+===================================================== */
+
+:root {
+    --brand-typescript: #3178c6;
+}
+
+.lang-hero-icon.typescript {
+    background: #3178c6 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #3178c644;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #3178c6;
+}
+
+.code-header .code-lang-label {
+    color: #3178c6;
+    font-weight: bold;
+}

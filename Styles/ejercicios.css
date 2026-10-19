@@ -1,0 +1,525 @@
+/* =====================================================
+   RDSLP - Estilos de Ejercicios
+===================================================== */
+
+@import url('./common.css');
+
+.ejercicios-container {
+    padding: 30px;
+}
+
+.ejercicios-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 30px;
+}
+
+/* Editor de código */
+.code-editor-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.editor-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.editor-controls {
+    display: flex;
+    gap: 12px;
+}
+
+.language-select,
+.exercise-select {
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.exercise-select {
+    min-width: 200px;
+}
+
+.exercise-description {
+    padding: 16px 20px;
+    background: rgba(99, 102, 241, 0.1);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.exercise-description p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.exercise-description strong {
+    color: var(--text-primary);
+}
+
+.code-editor {
+    display: flex;
+    background: var(--bg-primary);
+    min-height: 350px;
+}
+
+.editor-line-numbers {
+    padding: 20px 12px;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: right;
+    user-select: none;
+    border-right: 1px solid var(--border-color);
+    min-width: 50px;
+}
+
+.code-input {
+    flex: 1;
+    padding: 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+}
+
+.code-input::placeholder {
+    color: var(--text-muted);
+}
+
+.editor-actions {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.btn-run,
+.btn-evaluate,
+.btn-clear {
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-run {
+    background: var(--success-color);
+    border: none;
+    color: white;
+}
+
+.btn-run:hover {
+    opacity: 0.9;
+}
+
+.btn-evaluate {
+    background: var(--gradient-primary);
+    border: none;
+    color: white;
+}
+
+.btn-evaluate:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+}
+
+.btn-clear {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.btn-clear:hover {
+    background: var(--bg-input);
+}
+
+.output-section {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.output-section h4 {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+}
+
+.output-box {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 100px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+}
+
+.output-placeholder {
+    color: var(--text-muted);
+}
+
+.output-success {
+    color: var(--success-color);
+}
+
+.output-error {
+    color: var(--error-color);
+}
+
+/* Panel de calificación */
+.grading-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.grading-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 24px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.grade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.grade-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.grade-score {
+    width: 70px;
+    height: 70px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+}
+
+.grade-score.excellent {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.grade-score.good {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.grade-score.average {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.grade-score.poor {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.grade-details {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.grade-item {
+    display: grid;
+    grid-template-columns: 120px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+}
+
+.grade-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.grade-bar {
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.grade-fill {
+    height: 100%;
+    background: var(--accent-primary);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.grade-fill.high {
+    background: var(--success-color);
+}
+
+.grade-fill.medium {
+    background: var(--warning-color);
+}
+
+.grade-fill.low {
+    background: var(--error-color);
+}
+
+.grade-value {
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+}
+
+.grade-feedback {
+    padding: 16px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.grade-feedback h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.grade-feedback p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.grade-feedback ul {
+    list-style: none;
+    margin-top: 12px;
+}
+
+.grade-feedback li {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+}
+
+.grade-feedback li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 6px;
+    height: 6px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+}
+
+.share-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.share-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.share-checkbox input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-primary);
+}
+
+.btn-share {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent-primary);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-share:hover {
+    background: var(--accent-hover);
+}
+
+.btn-share:disabled {
+    background: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Ejercicios recientes */
+.recent-exercises {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 20px;
+}
+
+.recent-exercises h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.exercise-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px;
+    background: var(--bg-input);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exercise-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.exercise-item-info h4 {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.exercise-item-info span {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.exercise-item-score {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: white;
+}
+
+.no-exercises {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.exercise-item.pinned {
+    border: 1px solid var(--accent-primary);
+    background: rgba(99, 102, 241, 0.08);
+}
+
+@media (max-width: 1200px) {
+    .ejercicios-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .grading-section {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .grading-card,
+    .recent-exercises {
+        flex: 1;
+        min-width: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .ejercicios-container {
+        padding: 20px;
+    }
+
+    .editor-controls {
+        width: 100%;
+    }
+
+    .language-select,
+    .exercise-select {
+        flex: 1;
+    }
+
+    .editor-actions {
+        flex-wrap: wrap;
+    }
+
+    .btn-run,
+    .btn-evaluate {
+        flex: 1;
+    }
+
+    .grade-item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}

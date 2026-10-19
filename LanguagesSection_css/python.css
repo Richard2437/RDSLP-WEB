@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Python
+   LanguagesSection_css/python.css
+===================================================== */
+
+:root {
+    --brand-python: #3776ab;
+}
+
+.lang-hero-icon.python {
+    background: #3776ab !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #3776ab44;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #3776ab;
+}
+
+.code-header .code-lang-label {
+    color: #3776ab;
+    font-weight: bold;
+}

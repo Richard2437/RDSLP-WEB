@@ -1,0 +1,87 @@
+================================================================================
+                     DOCUMENTACIÓN DEL PROYECTO RDSLP
+          Red Social de Lenguajes de Programación - ABP FINAL
+================================================================================
+
+1. DESCRIPCIÓN GENERAL
+----------------------
+RDSLP es una plataforma web educativa tipo red social enfocada en lenguajes
+de programación. Permite a los usuarios registrarse, iniciar sesión, explorar
+contenido de lógica, lenguajes, bases de datos y libros, además de interactuar
+en un muro comunitario y participar en eventos.
+
+2. PÁGINAS DEL SITIO
+--------------------
+  - login.html        → Inicio de sesión
+  - sesion.html        → Registro de nuevos usuarios
+  - dashboard.html     → Panel principal (inicio, contenido, admin)
+  - muro.html          → Muro de publicaciones
+  - ejercicios.html    → Ejercicios de programación
+  - logica.html        → Contenido de lógica de programación
+  - libros.html        → Biblioteca de libros recomendados
+  - comunidad.html     → Eventos y comunidad
+  - perfil.html        → Perfil del usuario
+  - databases.html     → Sección de bases de datos
+
+3. ARCHIVOS JAVASCRIPT PRINCIPALES
+-----------------------------------
+  - JS/auth.js         → Autenticación, registro, login, roles, ban/unban
+  - JS/dashboard.js    → Lógica del dashboard y panel de administración
+  - JS/login.js        → Lógica del formulario de login
+  - JS/api-client.js   → Cliente API para conexión con backend
+
+4. ROLES DE USUARIO
+-------------------
+  - admin      → Acceso total: gestionar usuarios, banear, cambiar roles
+  - moderator  → Permisos intermedios de moderación
+  - user       → Usuario estándar con permisos básicos
+
+5. ESTRUCTURA DE DATOS DE USUARIO (localStorage: rdslp_all_users)
+-----------------------------------------------------------------
+  {
+    id:        número único (timestamp),
+    email:     correo electrónico,
+    password:  contraseña,
+    name:      nombre completo,
+    role:      "user" | "moderator" | "admin",
+    avatar:    iniciales (ej: "JP"),
+    bio:       biografía del usuario,
+    isBanned:  false | true,
+    createdAt: fecha ISO de creación
+  }
+
+6. MEDIDAS DE SEGURIDAD
+------------------------
+  a) Verificación de permisos antes de acciones admin (canManageUsers)
+  b) Los admins NO pueden ser baneados por otros admins
+  c) Sesión del usuario almacenada separada (rdslp_user) de la lista completa
+  d) Evento personalizado "userListUpdated" se dispara tras cada cambio
+     (registro, ban, unban) para sincronizar la interfaz del admin en tiempo real
+  e) Validación de formularios en el lado del cliente
+  f) Contraseñas almacenadas en localStorage (SOLO DEMO - en producción usar
+     hash bcrypt en servidor)
+
+7. PANEL DE ADMINISTRACIÓN
+---------------------------
+  - Muestra estadísticas: total usuarios, comentarios, eventos
+  - Pestañas: "Usuarios Activos" y "Usuarios Baneados"
+  - Acciones por usuario: cambiar rol (select), banear/desbanear (botón)
+  - Se actualiza automáticamente al registrar nuevos usuarios
+
+8. TECNOLOGÍAS UTILIZADAS
+--------------------------
+  - HTML5, CSS3, JavaScript (vanilla)
+  - Google Fonts (Inter)
+  - Bootstrap 5.3 (integrado vía CDN)
+  - Node.js + Express (servidor backend)
+  - MySQL (base de datos rdslp_database.sql)
+
+9. CÓMO EJECUTAR
+-----------------
+  1. npm install
+  2. npm start
+  3. Abrir http://localhost:3000 en el navegador
+
+================================================================================
+                          Generado automáticamente
+================================================================================

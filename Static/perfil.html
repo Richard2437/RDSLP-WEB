@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RDSLP - Mi Perfil. Administra tu cuenta.">
+    <title>Mi Perfil | RDSLP</title>
+    <link rel="stylesheet" href="../Styles/dashboard.css">
+    <link rel="stylesheet" href="../Styles/perfil.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <a href="dashboard.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                    <div class="logo-icon">RD</div>
+                    <span class="logo-text">RDSLP</span>
+                </a>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item"><a href="dashboard.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg><span>Inicio</span></a></li>
+                <li class="nav-item"><a href="muro.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg><span>Muro</span></a></li>
+                <li class="nav-item"><a href="ejercicios.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg><span>Ejercicios</span></a></li>
+                <li class="nav-item"><a href="logica.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg><span>Lógica</span></a></li>
+                <li class="nav-item"><a href="../LanguagesSection/lenguajes.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg><span>Lenguajes</span></a></li>
+                <li class="nav-item"><a href="../DatabasesSection/databases.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg><span>Bases de Datos</span></a></li>
+                <li class="nav-item"><a href="libros.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg><span>Libros</span></a></li>
+                <li class="nav-item"><a href="comunidad.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                        </svg><span>Comunidad</span></a></li>
+                <li class="nav-item"><a href="perfil.html" class="nav-link active"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg><span>Perfil</span></a></li>
+            </ul>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" id="logoutBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg><span>Cerrar Sesión</span></button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="main-header">
+            <div class="header-left">
+                <h1 class="page-title">Mi Perfil</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-menu">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span class="user-name" id="userName">Usuario</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="perfil-container">
+            <div class="profile-layout">
+                <!-- Tarjeta de perfil -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <div class="profile-avatar" id="profileAvatar">U</div>
+                        <h3 class="profile-name" id="profileName">Usuario</h3>
+                        <p class="profile-email" id="profileEmail">usuario@email.com</p>
+                        <span class="profile-role" id="profileRole">Usuario</span>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <span class="stat-value" id="statComments">0</span>
+                            <span class="stat-label">Comentarios</span>
+                        </div>
+                        <div class="profile-stat">
+                            <span class="stat-value" id="statRatings">0</span>
+                            <span class="stat-label">Calificaciones</span>
+                        </div>
+                        <div class="profile-stat">
+                            <span class="stat-value" id="statEvents">0</span>
+                            <span class="stat-label">Eventos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración -->
+                <div class="settings-card">
+                    <h3>Configuración de Cuenta</h3>
+
+                    <form class="settings-form" id="settingsForm">
+                        <div class="form-section">
+                            <h4>Información Personal</h4>
+
+                            <div class="form-group">
+                                <label for="editName">Nombre completo</label>
+                                <input type="text" id="editName" placeholder="Tu nombre">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editEmail">Correo electrónico</label>
+                                <input type="email" id="editEmail" placeholder="tu@email.com" disabled>
+                                <small>El correo no se puede modificar</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editBio">Biografía</label>
+                                <textarea id="editBio" placeholder="Cuéntanos sobre ti..." rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h4>Cambiar Contraseña</h4>
+
+                            <div class="form-group">
+                                <label for="currentPassword">Contraseña actual</label>
+                                <input type="password" id="currentPassword" placeholder="Tu contraseña actual">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="newPassword">Nueva contraseña</label>
+                                <input type="password" id="newPassword" placeholder="Nueva contraseña">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmNewPassword">Confirmar nueva contraseña</label>
+                                <input type="password" id="confirmNewPassword"
+                                    placeholder="Confirma la nueva contraseña">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-save">Guardar Cambios</button>
+                            <button type="button" class="btn-cancel" id="cancelChanges">Cancelar</button>
+                        </div>
+
+                        <div class="settings-message" id="settingsMessage"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../JS/auth.js"></script>
+    <script src="../JS/perfil.js"></script>
+</body>
+
+</html>

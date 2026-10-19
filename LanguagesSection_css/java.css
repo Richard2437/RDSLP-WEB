@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Java
+   LanguagesSection_css/java.css
+===================================================== */
+
+:root {
+    --brand-java: #e76f00;
+}
+
+.lang-hero-icon.java {
+    background: #e76f00 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #e76f0044;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #e76f00;
+}
+
+.code-header .code-lang-label {
+    color: #e76f00;
+    font-weight: bold;
+}

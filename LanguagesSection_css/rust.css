@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Rust
+   LanguagesSection_css/rust.css
+===================================================== */
+
+:root {
+    --brand-rust: #dea584;
+}
+
+.lang-hero-icon.rust {
+    background: #dea584 !important;
+    color: #111827 !important;
+    box-shadow: 0 4px 18px #dea58444;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #dea584;
+}
+
+.code-header .code-lang-label {
+    color: #dea584;
+    font-weight: bold;
+}

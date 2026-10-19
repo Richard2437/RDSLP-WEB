@@ -1,0 +1,67 @@
+/* =====================================================
+   RDSLP - Servidor Express Principal
+   Red Social de Lenguajes de Programación
+===================================================== */
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const { testConnection } = require('./api/db');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos principales
+app.use('/Static', express.static(path.join(__dirname, 'Static')));
+app.use('/JS', express.static(path.join(__dirname, 'JS')));
+app.use('/Styles', express.static(path.join(__dirname, 'Styles')));
+
+// Lenguajes
+app.use('/LanguagesSection', express.static(path.join(__dirname, 'LanguagesSection')));
+app.use('/LanguagesSection_css', express.static(path.join(__dirname, 'LanguagesSection_css')));
+app.use('/LanguagesSection_js', express.static(path.join(__dirname, 'LanguagesSection_js')));
+
+// Bases de Datos
+app.use('/DatabasesSection', express.static(path.join(__dirname, 'DatabasesSection')));
+app.use('/DatabasesSection_css', express.static(path.join(__dirname, 'DatabasesSection_css')));
+app.use('/DatabasesSection_js', express.static(path.join(__dirname, 'DatabasesSection_js')));
+
+// Rutas de la API
+app.use('/api/auth', require('./api/auth'));
+app.use('/api/posts', require('./api/posts'));
+app.use('/api/community', require('./api/community'));
+app.use('/api/content', require('./api/content'));
+app.use('/api/exercises', require('./api/exercises'));
+app.use('/api/libros', require('./api/libros'));
+app.use('/api/archivos', require('./api/archivos'));
+app.use('/api/databases', require('./api/databases'));
+
+// Ruta raíz redirige al login
+app.get('/', (req, res) => {
+    res.redirect('/Static/login.html');
+});
+
+// Health check para que el frontend sepa si el server está activo
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Iniciar servidor
+async function start() {
+    const dbOk = await testConnection();
+    app.listen(PORT, () => {
+        console.log(`\nServidor RDSLP corriendo en http://localhost:${PORT}`);
+        console.log(`Frontend: http://localhost:${PORT}/Static/login.html`);
+        if (!dbOk) {
+            console.log('MySQL no disponible - el frontend usara localStorage como fallback');
+        }
+        console.log('');
+    });
+}
+
+start();

@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Go
+   LanguagesSection_css/go.css
+===================================================== */
+
+:root {
+    --brand-go: #00add8;
+}
+
+.lang-hero-icon.go {
+    background: #00add8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #00add844;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #00add8;
+}
+
+.code-header .code-lang-label {
+    color: #00add8;
+    font-weight: bold;
+}

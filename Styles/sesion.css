@@ -1,0 +1,438 @@
+/* =====================================================
+   RDSLP - Estilos del Registro
+   Red Social de Lenguajes de Programación
+   Tema: Oscuro Profesional
+===================================================== */
+
+/* Reset y Variables */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0d0d0d;
+    --bg-secondary: #1a1a1a;
+    --bg-card: #242424;
+    --bg-input: #2a2a2a;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666666;
+    --accent-primary: #6366f1;
+    --accent-secondary: #818cf8;
+    --accent-hover: #4f46e5;
+    --border-color: #333333;
+    --error-color: #ef4444;
+    --success-color: #22c55e;
+    --warning-color: #f59e0b;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    padding: 20px;
+}
+
+/* Fondo animado */
+.background-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.background-animation::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background:
+        radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 60% 60%, rgba(99, 102, 241, 0.05) 0%, transparent 30%);
+    animation: backgroundMove 20s ease-in-out infinite;
+}
+
+@keyframes backgroundMove {
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    25% {
+        transform: translate(-2%, 2%) rotate(-1deg);
+    }
+
+    50% {
+        transform: translate(1%, -3%) rotate(1deg);
+    }
+
+    75% {
+        transform: translate(2%, 1%) rotate(-0.5deg);
+    }
+}
+
+/* Contenedor principal */
+.register-container {
+    width: 100%;
+    max-width: 500px;
+}
+
+/* Tarjeta de registro */
+.register-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 20px 60px var(--shadow-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.register-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 70px var(--shadow-color);
+}
+
+/* Header del registro */
+.register-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.register-logo {
+    width: 70px;
+    height: 70px;
+    background: var(--gradient-primary);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+}
+
+.register-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.register-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+/* Formulario */
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 14px 16px;
+    padding-left: 44px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 15px;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.input-wrapper input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.input-wrapper input::placeholder {
+    color: var(--text-muted);
+}
+
+.input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: var(--text-secondary);
+}
+
+/* Indicador de fortaleza de contraseña */
+.password-strength {
+    margin-top: 8px;
+}
+
+.strength-bar {
+    height: 4px;
+    background: var(--bg-input);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strength-fill.weak {
+    width: 33%;
+    background: var(--error-color);
+}
+
+.strength-fill.medium {
+    width: 66%;
+    background: var(--warning-color);
+}
+
+.strength-fill.strong {
+    width: 100%;
+    background: var(--success-color);
+}
+
+.strength-text {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.strength-text.weak {
+    color: var(--error-color);
+}
+
+.strength-text.medium {
+    color: var(--warning-color);
+}
+
+.strength-text.strong {
+    color: var(--success-color);
+}
+
+/* Checkbox de términos */
+.terms-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.terms-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.terms-checkbox a {
+    color: var(--accent-secondary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.terms-checkbox a:hover {
+    color: var(--accent-primary);
+}
+
+/* Botón de registro */
+.btn-register {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-register::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-register:hover::before {
+    left: 100%;
+}
+
+.btn-register:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.btn-register:active {
+    transform: translateY(0);
+}
+
+.btn-register:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Separador */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 5px 0;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.divider span {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Link de login */
+.login-link {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.login-link a {
+    color: var(--accent-secondary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.login-link a:hover {
+    color: var(--accent-primary);
+}
+
+/* Mensajes de error y éxito */
+.error-message,
+.success-message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-message {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--error-color);
+}
+
+.success-message {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: var(--success-color);
+}
+
+.error-message.show,
+.success-message.show {
+    display: flex;
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    .register-card {
+        padding: 30px 24px;
+    }
+
+    .register-header h1 {
+        font-size: 22px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}

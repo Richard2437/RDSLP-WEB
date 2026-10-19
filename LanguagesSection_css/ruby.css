@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: Ruby
+   LanguagesSection_css/ruby.css
+===================================================== */
+
+:root {
+    --brand-ruby: #cc342d;
+}
+
+.lang-hero-icon.ruby {
+    background: #cc342d !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #cc342d44;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #cc342d;
+}
+
+.code-header .code-lang-label {
+    color: #cc342d;
+    font-weight: bold;
+}

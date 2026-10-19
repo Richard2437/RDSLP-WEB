@@ -1,0 +1,23 @@
+/* =====================================================
+   RDSLP - Estilos Específicos: C#
+   LanguagesSection_css/csharp.css
+===================================================== */
+
+:root {
+    --brand-csharp: #68217a;
+}
+
+.lang-hero-icon.csharp {
+    background: #68217a !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 18px #68217a44;
+}
+
+.lang-hero-card {
+    border-top: 3px solid #68217a;
+}
+
+.code-header .code-lang-label {
+    color: #68217a;
+    font-weight: bold;
+}
