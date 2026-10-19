@@ -283,6 +283,48 @@
         </div>
     </div>
 
+    <!-- Modal de Ajustes de la Comunidad / Privacidad (Estilo WhatsApp/Facebook) -->
+    <div class="modal" id="settingsCommunityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Ajustes de la Sala (Administrador)</h3>
+                <button class="modal-close" id="closeSettingsModal">&times;</button>
+            </div>
+            <form id="settingsCommunityForm">
+                <input type="hidden" id="editEventId" value="">
+                <div class="form-group">
+                    <label for="editEventTitle">Nombre del Encuentro / Grupo</label>
+                    <input type="text" id="editEventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEventDescription">Descripción del Grupo</label>
+                    <textarea id="editEventDescription" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editEventAccessType">Privacidad del Grupo (Decisión del Creador)</label>
+                    <select id="editEventAccessType" required>
+                        <option value="public">🟢 Público / Abierto (Cualquier usuario puede ver y entrar)</option>
+                        <option value="private">🔒 Privado (Solo invitados con código de acceso)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="editInviteCodeGroup" style="display: none;">
+                    <label for="editEventInviteCode">Código de Invitación</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="editEventInviteCode" maxlength="20" style="text-transform: uppercase; font-family: monospace; letter-spacing: 1px;">
+                        <button type="button" class="btn-gen-code" id="btnRegenInviteCode">🎲 Nuevo Código</button>
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block;">
+                        Al cambiar o regenerar este código, los nuevos invitados deberán ingresar este valor para unirse.
+                    </small>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save">Guardar Cambios</button>
+                    <button type="button" class="btn-cancel" id="cancelSettingsModal">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="../JS/auth.js"></script>
     <script src="../JS/legal.js"></script>
     <script src="../JS/comunidad.js"></script>

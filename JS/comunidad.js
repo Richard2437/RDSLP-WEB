@@ -113,6 +113,32 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('closeViewInviteModal')?.addEventListener('click', closeViewInviteModal);
         document.getElementById('closeViewInviteBtn')?.addEventListener('click', closeViewInviteModal);
         document.getElementById('btnCopyInviteCode')?.addEventListener('click', copyInviteCodeToClipboard);
+
+        // Modal de ajustes de privacidad de la sala (Creador / Admin - Estilo WhatsApp/FB)
+        document.getElementById('closeSettingsModal')?.addEventListener('click', closeSettingsModal);
+        document.getElementById('cancelSettingsModal')?.addEventListener('click', closeSettingsModal);
+        document.getElementById('settingsCommunityForm')?.addEventListener('submit', handleSettingsSubmit);
+
+        const editAccessSelect = document.getElementById('editEventAccessType');
+        const editInviteGroup = document.getElementById('editInviteCodeGroup');
+        const editInviteInput = document.getElementById('editEventInviteCode');
+
+        editAccessSelect?.addEventListener('change', function () {
+            if (this.value === 'private') {
+                if (editInviteGroup) editInviteGroup.style.display = 'block';
+                if (editInviteInput && !editInviteInput.value) {
+                    editInviteInput.value = 'RDSLP-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+                }
+            } else {
+                if (editInviteGroup) editInviteGroup.style.display = 'none';
+            }
+        });
+
+        document.getElementById('btnRegenInviteCode')?.addEventListener('click', function () {
+            if (editInviteInput) {
+                editInviteInput.value = 'RDSLP-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+            }
+        });
     }
 
     function generateInviteCode() {
@@ -290,6 +316,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         ${isPrivate && (isOrganizer || auth.hasPermission('canManageEvents'))
                             ? `<button class="btn-invite-info" onclick="viewInviteCode(${event.id})" title="Ver y compartir código de invitación">🔑 Ver Invitación</button>`
+                            : ''
+                        }
+
+                        ${(isOrganizer || auth.hasPermission('canManageEvents'))
+                            ? `<button class="btn-settings-event" onclick="openEventSettings(${event.id})" title="Ajustes de privacidad del grupo (Público/Privado)">⚙️ Ajustes</button>`
                             : ''
                         }
 
@@ -492,6 +523,66 @@ document.addEventListener('DOMContentLoaded', function () {
         }).catch(() => {
             alert(`Código de invitación: ${code}`);
         });
+    }
+
+    // ========== AJUSTES DE SALA Y PRIVACIDAD (Creador / Admin) ==========
+    window.openEventSettings = function (eventId) {
+        const event = (community.getEvents() || []).find(e => e.id === eventId);
+        if (!event) return;
+
+        const idInput = document.getElementById('editEventId');
+        const titleInput = document.getElementById('editEventTitle');
+        const descInput = document.getElementById('editEventDescription');
+        const accessSelect = document.getElementById('editEventAccessType');
+        const inviteGroup = document.getElementById('editInviteCodeGroup');
+        const inviteInput = document.getElementById('editEventInviteCode');
+
+        if (idInput) idInput.value = event.id;
+        if (titleInput) titleInput.value = event.title || '';
+        if (descInput) descInput.value = event.description || '';
+        if (accessSelect) accessSelect.value = event.accessType || 'public';
+
+        if (event.accessType === 'private') {
+            if (inviteGroup) inviteGroup.style.display = 'block';
+            if (inviteInput) inviteInput.value = event.inviteCode || '';
+        } else {
+            if (inviteGroup) inviteGroup.style.display = 'none';
+            if (inviteInput) inviteInput.value = '';
+        }
+
+        document.getElementById('settingsCommunityModal')?.classList.add('active');
+    };
+
+    function closeSettingsModal() {
+        document.getElementById('settingsCommunityModal')?.classList.remove('active');
+    }
+
+    function handleSettingsSubmit(e) {
+        e.preventDefault();
+        const eventId = parseInt(document.getElementById('editEventId')?.value);
+        const title = document.getElementById('editEventTitle')?.value.trim();
+        const description = document.getElementById('editEventDescription')?.value.trim();
+        const accessType = document.getElementById('editEventAccessType')?.value;
+        let inviteCode = document.getElementById('editEventInviteCode')?.value.trim().toUpperCase();
+
+        if (accessType === 'private' && !inviteCode) {
+            inviteCode = 'RDSLP-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+        }
+
+        const res = community.updateEvent(eventId, {
+            title,
+            description,
+            accessType,
+            inviteCode: accessType === 'private' ? inviteCode : null
+        }, currentUser.id);
+
+        if (res.success) {
+            closeSettingsModal();
+            loadEvents();
+            alert('¡Configuración de privacidad y sala actualizada con éxito!');
+        } else {
+            alert(res.message || 'Error al actualizar los ajustes.');
+        }
     }
 
     window.leaveEvent = function (eventId) {

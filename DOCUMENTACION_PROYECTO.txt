@@ -56,46 +56,75 @@ en un muro comunitario y participar en eventos.
     createdAt:          fecha ISO de creación
   }
 
-6. PRIVACIDAD DE COMUNIDAD Y MEDIDAS LEGALES
---------------------------------------------
-  a) Salas Comunitarias Abiertas y Privadas:
-     - Abiertas: cualquier usuario puede inscribirse e ingresar al chat.
-     - Privadas: requieren un código de invitación único (ej: RDSLP-XXXXX).
-     - Validación de permisos para chat privado y moderación del organizador.
-  b) Cumplimiento Legal y Habeas Data (Ley 1581 de 2012 / GDPR):
-     - Consentimiento expreso e informado en login y registro.
-     - Modales interactivos para lectura íntegra de Términos y Habeas Data.
-     - Trazabilidad y almacenamiento de la fecha de consentimiento.
-     - Canales de atención para derechos ARCO (Acceso, Rectificación, Cancelación).
-  a) Verificación de permisos antes de acciones admin (canManageUsers)
+6. PRIVACIDAD DE COMUNIDADES Y SALAS (MODELO FACEBOOK / WHATSAPP)
+-----------------------------------------------------------------
+  a) Decisión de Privacidad por el Creador:
+     - Tal como en los Grupos de Facebook o Comunidades de WhatsApp, la persona que
+       crea la comunidad o sala es su Administrador y decide la privacidad:
+       * 🟢 PÚBLICO / ABIERTO: Cualquier usuario registrado de la plataforma puede
+         descubrir la sala, ver su temática, inscribirse libremente y chatear.
+       * 🔒 PRIVADO (CON INVITACIÓN): La sala está protegida con un código alfanumérico
+         único generado por el sistema (ej: RDSLP-ABC12) o personalizado por el creador.
+     - Solo los usuarios que ingresen el código correcto obtienen permiso de acceso.
+  b) Gestión y Ajustes de la Sala (Exclusivo Creador / Admin):
+     - El creador tiene el botón "⚙️ Ajustes" en la tarjeta de su sala para:
+       * Cambiar la privacidad en cualquier momento (de Público a Privado o viceversa).
+       * Regenerar el código de invitación con un solo clic si fue filtrado.
+       * Modificar el nombre y descripción de la sala.
+     - Botón "🔑 Ver Invitación" para copiar el código al portapapeles y compartirlo
+       directamente por WhatsApp, Discord o correo.
+  c) Permisos Estrictos en Chat en Tiempo Real:
+     - Verificación automática de autorización en cada sala: si un usuario intenta
+       enviar o leer mensajes en una sala privada sin haberse unido válidamente con el
+       código, el sistema bloquea la acción notificando acceso denegado.
+
+7. CUMPLIMIENTO LEGAL Y HABEAS DATA (LEY 1581 DE 2012 / GDPR)
+-------------------------------------------------------------
+  a) Política de Tratamiento de Datos Personales (Habeas Data):
+     - Módulo legal interactivo (JS/legal.js) con el documento legal completo.
+     - Declaración de responsable, finalidades legítimas (educativas y comunitarias),
+       derechos ARCO (Acceso, Rectificación, Cancelación, Oposición) y canal de contacto.
+     - Compromiso expreso: RDSLP NO vende ni cede datos a terceros con fines comerciales.
+  b) Términos y Condiciones de Servicio:
+     - Reglas de convivencia comunitaria, prohibición de código malicioso o conductas de acoso.
+     - Licenciamiento de código compartido para propósitos de aprendizaje colaborativo.
+  c) Consentimiento Informado en Login y Registro:
+     - login.html: Aviso legal con enlaces para leer Términos y Habeas Data.
+     - sesion.html: Checkbox explícito y obligatorio de aceptación sin el cual no se
+       permite la creación de la cuenta, guardando la fecha ISO del consentimiento.
+
+8. MEDIDAS DE SEGURIDAD GENERALES
+---------------------------------
+  a) Verificación de permisos antes de acciones admin (canManageUsers, canManageEvents)
   b) Los admins NO pueden ser baneados por otros admins
   c) Sesión del usuario almacenada separada (rdslp_user) de la lista completa
   d) Evento personalizado "userListUpdated" se dispara tras cada cambio
      (registro, ban, unban) para sincronizar la interfaz del admin en tiempo real
-  e) Validación de formularios en el lado del cliente
+  e) Validación de formularios en el lado del cliente y servidor
   f) Contraseñas almacenadas en localStorage (SOLO DEMO - en producción usar
      hash bcrypt en servidor)
 
-7. PANEL DE ADMINISTRACIÓN
----------------------------
+9. PANEL DE ADMINISTRACIÓN
+--------------------------
   - Muestra estadísticas: total usuarios, comentarios, eventos
   - Pestañas: "Usuarios Activos" y "Usuarios Baneados"
   - Acciones por usuario: cambiar rol (select), banear/desbanear (botón)
   - Se actualiza automáticamente al registrar nuevos usuarios
 
-8. TECNOLOGÍAS UTILIZADAS
---------------------------
+10. TECNOLOGÍAS UTILIZADAS
+---------------------------
   - HTML5, CSS3, JavaScript (vanilla)
   - Google Fonts (Inter)
   - Bootstrap 5.3 (integrado vía CDN)
   - Node.js + Express (servidor backend)
   - MySQL (base de datos rdslp_database.sql)
 
-9. CÓMO EJECUTAR
------------------
+11. CÓMO EJECUTAR
+------------------
   1. npm install
   2. npm start
   3. Abrir http://localhost:3000 en el navegador
+  4. Modo estático / GitHub Pages: Abrir index.html o desplegar en GitHub Pages.
 
 ================================================================================
                           Generado automáticamente

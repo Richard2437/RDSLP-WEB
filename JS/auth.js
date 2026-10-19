@@ -683,6 +683,27 @@ class CommunityManager {
         return events.find(e => e.accessType === 'private' && (e.inviteCode || '').toUpperCase() === clean);
     }
 
+    updateEvent(eventId, updatedData, userId) {
+        const events = this.getEvents();
+        const eventIndex = events.findIndex(e => e.id === eventId);
+        if (eventIndex === -1) return { success: false, message: 'Encuentro no encontrado' };
+
+        const event = events[eventIndex];
+        const auth = new AuthManager();
+        if (event.organizer !== userId && !auth.hasPermission('canManageEvents')) {
+            return { success: false, message: 'Solo el creador o un administrador puede modificar los ajustes y la privacidad de esta comunidad.' };
+        }
+
+        events[eventIndex] = {
+            ...event,
+            ...updatedData,
+            updatedAt: new Date().toISOString()
+        };
+
+        localStorage.setItem('rdslp_events', JSON.stringify(events));
+        return { success: true, event: events[eventIndex] };
+    }
+
     leaveEvent(eventId, userId) {
         const events = this.getEvents();
         const eventIndex = events.findIndex(e => e.id === eventId);

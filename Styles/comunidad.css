@@ -277,6 +277,23 @@
     color: var(--accent-secondary);
 }
 
+.btn-settings-event {
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-settings-event:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
 .events-filter-bar {
     display: flex;
     gap: 6px;
