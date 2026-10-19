@@ -181,6 +181,8 @@ CREATE TABLE IF NOT EXISTS eventos (
     organizador_id INT NOT NULL,
     categoria VARCHAR(50),
     max_participantes INT DEFAULT 20,
+    tipo_acceso ENUM('public', 'private') DEFAULT 'public',
+    codigo_invitacion VARCHAR(50) DEFAULT NULL,
     estado ENUM('upcoming', 'active', 'finished', 'cancelled') DEFAULT 'upcoming',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

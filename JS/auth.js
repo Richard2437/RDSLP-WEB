@@ -165,6 +165,9 @@ class AuthManager {
             avatar: userData.firstName.charAt(0).toUpperCase() + userData.lastName.charAt(0).toUpperCase(),
             bio: '',
             isBanned: false,
+            habeasDataAccepted: true,
+            termsAccepted: true,
+            legalConsentDate: new Date().toISOString(),
             createdAt: new Date().toISOString()
         };
 
@@ -599,7 +602,7 @@ class CommunityManager {
         return newChat;
     }
 
-    // Eventos
+    // Eventos (con soporte Abierto / Privado con invitación)
     getEvents(status = null) {
         const events = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
         if (status) {
@@ -610,12 +613,21 @@ class CommunityManager {
 
     createEvent(eventData, userId, userName) {
         const events = this.getEvents();
+        const accessType = eventData.accessType === 'private' ? 'private' : 'public';
+        const inviteCode = accessType === 'private'
+            ? (eventData.inviteCode?.trim().toUpperCase() || ('RDSLP-' + Math.random().toString(36).substring(2, 7).toUpperCase()))
+            : null;
+
         const newEvent = {
             id: Date.now(),
             ...eventData,
+            accessType,
+            inviteCode,
             organizer: userId,
             organizerName: userName,
-            participants: [],
+            participants: [
+                { id: userId, name: userName, role: 'organizer', joinedAt: new Date().toISOString() }
+            ],
             status: 'upcoming',
             createdAt: new Date().toISOString()
         };
@@ -624,7 +636,7 @@ class CommunityManager {
         return newEvent;
     }
 
-    joinEvent(eventId, userId, userName) {
+    joinEvent(eventId, userId, userName, inviteCode = null) {
         const events = this.getEvents();
         const eventIndex = events.findIndex(e => e.id === eventId);
 
@@ -632,17 +644,43 @@ class CommunityManager {
 
         const event = events[eventIndex];
 
-        if (event.participants.some(p => p.id === userId)) {
-            return { success: false, message: 'Ya estas inscrito en este evento' };
+        if (event.participants && event.participants.some(p => p.id === userId)) {
+            return { success: false, message: 'Ya estás inscrito en este evento' };
         }
 
-        if (event.participants.length >= event.maxParticipants) {
-            return { success: false, message: 'El evento esta lleno' };
+        if (event.participants && event.participants.length >= event.maxParticipants) {
+            return { success: false, message: 'El evento está lleno' };
         }
 
+        // Validación de permisos para eventos privados
+        if (event.accessType === 'private' && event.organizer !== userId) {
+            const cleanInput = (inviteCode || '').trim().toUpperCase();
+            const cleanTarget = (event.inviteCode || '').trim().toUpperCase();
+            if (!cleanInput || cleanInput !== cleanTarget) {
+                return { success: false, message: 'Código de invitación incorrecto o no suministrado.' };
+            }
+        }
+
+        if (!event.participants) event.participants = [];
         event.participants.push({ id: userId, name: userName, joinedAt: new Date().toISOString() });
         localStorage.setItem('rdslp_events', JSON.stringify(events));
         return { success: true, event };
+    }
+
+    hasAccessToEvent(eventId, userId, userEmail = null) {
+        const events = this.getEvents();
+        const event = events.find(e => e.id === eventId);
+        if (!event) return false;
+        if (event.accessType !== 'private') return true;
+        if (event.organizer === userId || (userEmail && event.organizer === userEmail)) return true;
+        return event.participants && event.participants.some(p => p.id === userId);
+    }
+
+    getEventByInviteCode(code) {
+        if (!code) return null;
+        const clean = code.trim().toUpperCase();
+        const events = this.getEvents();
+        return events.find(e => e.accessType === 'private' && (e.inviteCode || '').toUpperCase() === clean);
     }
 
     leaveEvent(eventId, userId) {
@@ -651,7 +689,7 @@ class CommunityManager {
 
         if (eventIndex === -1) return { success: false, message: 'Evento no encontrado' };
 
-        events[eventIndex].participants = events[eventIndex].participants.filter(p => p.id !== userId);
+        events[eventIndex].participants = (events[eventIndex].participants || []).filter(p => p.id !== userId);
         localStorage.setItem('rdslp_events', JSON.stringify(events));
         return { success: true };
     }

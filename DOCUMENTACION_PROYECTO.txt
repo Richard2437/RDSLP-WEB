@@ -25,9 +25,12 @@ en un muro comunitario y participar en eventos.
 
 3. ARCHIVOS JAVASCRIPT PRINCIPALES
 -----------------------------------
-  - JS/auth.js         → Autenticación, registro, login, roles, ban/unban
+  - JS/auth.js         → Autenticación, registro, login, roles, ban/unban, salas y eventos
   - JS/dashboard.js    → Lógica del dashboard y panel de administración
   - JS/login.js        → Lógica del formulario de login
+  - JS/sesion.js       → Lógica de registro y validación de Habeas Data
+  - JS/legal.js        → Módulo legal de Términos de Servicio y Habeas Data (Ley 1581)
+  - JS/comunidad.js    → Gestión de salas públicas y privadas con código de invitación
   - JS/api-client.js   → Cliente API para conexión con backend
 
 4. ROLES DE USUARIO
@@ -39,19 +42,31 @@ en un muro comunitario y participar en eventos.
 5. ESTRUCTURA DE DATOS DE USUARIO (localStorage: rdslp_all_users)
 -----------------------------------------------------------------
   {
-    id:        número único (timestamp),
-    email:     correo electrónico,
-    password:  contraseña,
-    name:      nombre completo,
-    role:      "user" | "moderator" | "admin",
-    avatar:    iniciales (ej: "JP"),
-    bio:       biografía del usuario,
-    isBanned:  false | true,
-    createdAt: fecha ISO de creación
+    id:                 número único (timestamp),
+    email:              correo electrónico,
+    password:           contraseña,
+    name:               nombre completo,
+    role:               "user" | "moderator" | "admin",
+    avatar:             iniciales (ej: "JP"),
+    bio:                biografía del usuario,
+    isBanned:           false | true,
+    habeasDataAccepted: true,
+    termsAccepted:      true,
+    legalConsentDate:   fecha ISO de aceptación de términos y Habeas Data,
+    createdAt:          fecha ISO de creación
   }
 
-6. MEDIDAS DE SEGURIDAD
-------------------------
+6. PRIVACIDAD DE COMUNIDAD Y MEDIDAS LEGALES
+--------------------------------------------
+  a) Salas Comunitarias Abiertas y Privadas:
+     - Abiertas: cualquier usuario puede inscribirse e ingresar al chat.
+     - Privadas: requieren un código de invitación único (ej: RDSLP-XXXXX).
+     - Validación de permisos para chat privado y moderación del organizador.
+  b) Cumplimiento Legal y Habeas Data (Ley 1581 de 2012 / GDPR):
+     - Consentimiento expreso e informado en login y registro.
+     - Modales interactivos para lectura íntegra de Términos y Habeas Data.
+     - Trazabilidad y almacenamiento de la fecha de consentimiento.
+     - Canales de atención para derechos ARCO (Acceso, Rectificación, Cancelación).
   a) Verificación de permisos antes de acciones admin (canManageUsers)
   b) Los admins NO pueden ser baneados por otros admins
   c) Sesión del usuario almacenada separada (rdslp_user) de la lista completa

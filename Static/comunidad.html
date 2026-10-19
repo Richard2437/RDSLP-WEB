@@ -133,15 +133,30 @@
                 <!-- Events Section -->
                 <div class="community-events">
                     <div class="events-header">
-                        <h3>Encuentros Virtuales</h3>
-                        <button class="btn-create-event" id="createEventBtn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                            </svg>
-                            Crear Evento
-                        </button>
+                        <div>
+                            <h3>Encuentros y Salas</h3>
+                            <div class="events-filter-bar">
+                                <button class="filter-chip active" data-filter="all">Todos</button>
+                                <button class="filter-chip" data-filter="public">🟢 Abiertos</button>
+                                <button class="filter-chip" data-filter="private">🔒 Privados</button>
+                            </div>
+                        </div>
+                        <div class="events-header-actions">
+                            <button class="btn-join-code" id="joinByCodeBtn" title="Unirte a un evento privado con código">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                                </svg>
+                                Código
+                            </button>
+                            <button class="btn-create-event" id="createEventBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Crear Evento
+                            </button>
+                        </div>
                     </div>
                     <div class="events-list" id="eventsList">
                         <!-- Eventos cargados dinámicamente -->
@@ -155,7 +170,7 @@
     <div class="modal" id="eventModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Crear Nuevo Evento</h3>
+                <h3>Crear Nuevo Encuentro</h3>
                 <button class="modal-close" id="closeEventModal">&times;</button>
             </div>
             <form id="eventForm">
@@ -178,16 +193,38 @@
                         <input type="number" id="eventMax" required min="2" max="100" value="20">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="eventCategory">Categoría</label>
-                    <select id="eventCategory" required>
-                        <option value="logica">Lógica de Programación</option>
-                        <option value="lenguajes">Lenguajes</option>
-                        <option value="databases">Bases de Datos</option>
-                        <option value="libros">Libros</option>
-                        <option value="general">General</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="eventCategory">Categoría</label>
+                        <select id="eventCategory" required>
+                            <option value="logica">Lógica de Programación</option>
+                            <option value="lenguajes">Lenguajes</option>
+                            <option value="databases">Bases de Datos</option>
+                            <option value="libros">Libros</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventAccessType">Tipo de Acceso</label>
+                        <select id="eventAccessType" required>
+                            <option value="public">🟢 Abierto (Cualquiera puede entrar)</option>
+                            <option value="private">🔒 Privado (Con Invitación y Código)</option>
+                        </select>
+                    </div>
                 </div>
+
+                <!-- Campo dinámico de código para eventos privados -->
+                <div class="form-group" id="inviteCodeGroup" style="display: none;">
+                    <label for="eventInviteCode">Código de Invitación</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="eventInviteCode" placeholder="Ej: RDSLP-7X9B" maxlength="20" style="text-transform: uppercase; font-family: monospace; letter-spacing: 1px;">
+                        <button type="button" class="btn-gen-code" id="btnGenInviteCode" title="Generar código aleatorio">🎲 Generar</button>
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 11px; margin-top: 5px; display: block;">
+                        🔒 Solo los usuarios que posean este código podrán unirse al evento y participar en su chat privado.
+                    </small>
+                </div>
+
                 <div class="form-actions">
                     <button type="submit" class="btn-save">Crear Evento</button>
                     <button type="button" class="btn-cancel" id="cancelEvent">Cancelar</button>
@@ -196,7 +233,58 @@
         </div>
     </div>
 
+    <!-- Modal para ingresar con código de invitación -->
+    <div class="modal" id="joinInviteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Unirse a Evento Privado</h3>
+                <button class="modal-close" id="closeJoinInviteModal">&times;</button>
+            </div>
+            <form id="joinInviteForm">
+                <p id="joinInvitePrompt" style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                    Introduce el código de invitación proporcionado por el organizador para acceder a la sala y chat privado.
+                </p>
+                <input type="hidden" id="joinInviteTargetEventId" value="">
+                <div class="form-group">
+                    <label for="joinInviteInput">Código de Invitación</label>
+                    <input type="text" id="joinInviteInput" required placeholder="Ej: RDSLP-ABC12" maxlength="25" style="text-transform: uppercase; font-family: monospace; font-size: 16px; letter-spacing: 2px;">
+                </div>
+                <div id="joinInviteError" style="color: var(--error-color); font-size: 13px; margin-bottom: 12px; display: none;"></div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save">Validar y Unirme</button>
+                    <button type="button" class="btn-cancel" id="cancelJoinInvite">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para ver y compartir código de invitación -->
+    <div class="modal" id="viewInviteModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Invitación al Evento Privado</h3>
+                <button class="modal-close" id="closeViewInviteModal">&times;</button>
+            </div>
+            <div style="padding: 10px 0;">
+                <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 14px;">
+                    Comparte este código con los programadores que deseas invitar a esta sala:
+                </p>
+                <div class="invite-code-card">
+                    <span class="invite-code-display" id="displayInviteCode">RDSLP-XXXX</span>
+                    <button type="button" class="btn-copy-code" id="btnCopyInviteCode">📋 Copiar</button>
+                </div>
+                <div id="copyFeedback" style="color: var(--success-color); font-size: 12px; margin-top: 8px; text-align: center; display: none;">
+                    ¡Código copiado al portapapeles!
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top: 20px;">
+                <button type="button" class="btn-save" id="closeViewInviteBtn">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../JS/auth.js"></script>
+    <script src="../JS/legal.js"></script>
     <script src="../JS/comunidad.js"></script>
 </body>
 

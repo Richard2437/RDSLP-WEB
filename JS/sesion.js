@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showError('Las contraseñas no coinciden'); return;
         }
         if (!terms) {
-            showError('Debes aceptar los términos y condiciones'); return;
+            showError('Debes aceptar los Términos y Condiciones y autorizar el tratamiento de datos (Habeas Data).'); return;
         }
 
         setLoading(true);
@@ -108,8 +108,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Registro contra MySQL
-            const result = await window.apiClient.register({ firstName, lastName, email, password });
+            // Registro contra MySQL con consentimiento legal registrado
+            const result = await window.apiClient.register({ 
+                firstName, 
+                lastName, 
+                email, 
+                password,
+                habeasDataAccepted: true,
+                termsAccepted: true,
+                acceptedAt: new Date().toISOString()
+            });
 
             if (!result) {
                 showError('Error al conectar con la base de datos. Intenta de nuevo.');
