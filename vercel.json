@@ -1,0 +1,12 @@
+{
+    "routes": [
+        {
+            "src": "/",
+            "dest": "/Static/dashboard.html"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/Static/$1"
+        }
+    ]
+}
