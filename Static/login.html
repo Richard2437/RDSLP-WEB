@@ -72,7 +72,7 @@
                         <input type="checkbox" id="remember" name="remember">
                         <span>Recordarme</span>
                     </label>
-                    <a href="#" class="forgot-password">Olvidé mi contraseña</a>
+                    <a href="#" class="forgot-password" id="forgotPasswordBtn">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 <button type="submit" class="btn-login">
@@ -80,10 +80,10 @@
                 </button>
 
                 <div class="legal-notice">
-                    Al iniciar sesión aceptas nuestros 
-                    <button type="button" class="legal-btn-link" id="openTermsLogin">Términos y Condiciones</button> 
-                    y la autorización de tratamiento de datos 
-                    <button type="button" class="legal-btn-link" id="openHabeasLogin">Habeas Data</button>.
+                    Al ingresar aceptas los 
+                    <button type="button" class="legal-btn-link" id="openTermsLogin">Términos</button> y 
+                    <button type="button" class="legal-btn-link" id="openHabeasLogin">Habeas Data</button>
+                    (declarando: <em>"Me hago cargo de todo lo que publique y haga parte"</em>).
                 </div>
 
                 <div class="divider">
@@ -93,6 +93,38 @@
                 <p class="register-link">
                     ¿No tienes cuenta? <a href="sesion.html">Regístrate aquí</a>
                 </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Recuperar / Restablecer Contraseña -->
+    <div class="modal" id="forgotPasswordModal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3>Restablecer Contraseña</h3>
+                <button class="modal-close" id="closeForgotModal">&times;</button>
+            </div>
+            <form id="forgotPasswordForm" style="padding: 20px;">
+                <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+                    Ingresa el correo asociado a tu cuenta para restablecer tu contraseña y recuperar el acceso a la plataforma.
+                </p>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="forgotEmail">Correo electrónico</label>
+                    <input type="email" id="forgotEmail" required placeholder="tu@email.com" style="width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: #fff;">
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="newPassword">Nueva contraseña</label>
+                    <input type="password" id="newPassword" required minlength="6" placeholder="Mínimo 6 caracteres" style="width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: #fff;">
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label for="confirmNewPassword">Confirmar nueva contraseña</label>
+                    <input type="password" id="confirmNewPassword" required minlength="6" placeholder="Repite la nueva contraseña" style="width: 100%; padding: 12px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: #fff;">
+                </div>
+                <div id="forgotMessage" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px;"></div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn-cancel" id="cancelForgotModal" style="padding: 10px 18px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 8px; cursor: pointer;">Cancelar</button>
+                    <button type="submit" class="btn-save" id="btnSubmitForgot" style="padding: 10px 18px; background: var(--gradient-primary); border: none; color: #fff; border-radius: 8px; font-weight: 600; cursor: pointer;">Guardar Contraseña</button>
+                </div>
             </form>
         </div>
     </div>

@@ -58,15 +58,28 @@
                 </ul>
             </section>
 
+            <section class="legal-section legal-highlight-section" style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; padding: 12px 14px; border-radius: 6px;">
+                <h5 style="color: #fca5a5;">6. Declaración de Responsabilidad de Contenido, Autoría y No Plagio</h5>
+                <p><strong style="color: #fff;">Declaración expresa obligatoria del usuario:</strong> <em style="color: #fde047;">"Me hago cargo de todo lo que publique, comparta y del cual haga parte en esta plataforma."</em></p>
+                <p>
+                    Como usuario registrado de RDSLP, asumes de forma exclusiva y plena la responsabilidad jurídica, legal y moral por cualquier libro, documento, código fuente, imagen, enlace, texto o recurso que subas o compartas en cualquier sección de la plataforma (biblioteca de libros, muro, salas de comunidad, ejercicios o perfil):
+                </p>
+                <ul>
+                    <li><strong style="color: #fff;">Prohibición Estricta de Falsificación de Autoría:</strong> Queda terminantemente prohibido subir libros, obras, manuales o materiales creados por terceros colocándolos a nombre propio o suprimiendo el crédito del autor original. El plagio y la suplantación de autoría constituyen infracciones graves.</li>
+                    <li><strong style="color: #fff;">Garantía de Derechos o Dominio Público:</strong> Declaras que todo material compartido es de tu legítima autoría, cuenta con autorización expresa de su titular o licencias abiertas pertinentes (Creative Commons, MIT, etc.), o es de divulgación libre con cita fiel del autor original.</li>
+                    <li><strong style="color: #fff;">Exoneración Integral a RDSLP:</strong> RDSLP opera exclusivamente como entorno técnico y formativo. Los desarrolladores y administradores quedan totalmente exonerados de cualquier responsabilidad, demanda o indemnización derivada de infracciones a la propiedad intelectual cometidas por los usuarios.</li>
+                </ul>
+            </section>
+
             <section class="legal-section">
-                <h5>6. Medidas de Seguridad</h5>
+                <h5>7. Medidas de Seguridad</h5>
                 <p>
                     Implementamos medidas técnicas, humanas y organizativas orientadas a proteger la confidencialidad e integridad de la información, evitando su adulteración, pérdida, consulta o acceso no autorizado. Las contraseñas son tratadas mediante mecanismos de protección y aislamiento.
                 </p>
             </section>
 
             <section class="legal-section">
-                <h5>7. Canales de Atención para Habeas Data</h5>
+                <h5>8. Canales de Atención para Habeas Data</h5>
                 <p>
                     Para ejercer tus derechos de Habeas Data, presentar consultas o solicitudes de rectificación/supresión, puedes escribir al correo oficial de privacidad:
                     <a href="mailto:privacidad@rdslp.edu" class="legal-contact-mail">privacidad@rdslp.edu</a> o gestionarlo a través del panel de administración y perfil.
@@ -114,9 +127,12 @@
             </section>
 
             <section class="legal-section">
-                <h5>5. Propiedad Intelectual y Código Compartido</h5>
+                <h5>5. Propiedad Intelectual, Responsabilidad sobre Libros y Recursos</h5>
                 <p>
-                    El contenido educativo general pertenece a RDSLP o a sus respectivos autores citados. El código que publiques en el muro o compartas en salas se entenderá compartido con fines académicos bajo principios de colaboración abierta (Open Source formativo), preservando tu autoría moral.
+                    <strong>"Me hago cargo de todo lo que publique y haga parte."</strong> Cada usuario asume la total responsabilidad legal por los libros, códigos, documentos y materiales que suba. Si un usuario sube un libro o documento de un tercero colocándolo a su propio nombre o violando sus derechos de autor, el usuario responderá legalmente y de manera exclusiva ante los legítimos titulares y las autoridades, facultando a RDSLP a dar de baja de inmediato el contenido y suspender o cancelar la cuenta del usuario.
+                </p>
+                <p>
+                    El contenido pedagógico original pertenece a RDSLP o a los autores referenciados. Los recursos compartidos se rigen bajo principios de aprendizaje colaborativo y respeto estricto a los derechos morales y patrimoniales de autor.
                 </p>
             </section>
 

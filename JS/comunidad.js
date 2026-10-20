@@ -1,7 +1,8 @@
 /* =====================================================
    RDSLP - JavaScript de Comunidad
-   Salas Abiertas y Privadas (Con Invitación y Código)
-   Gestión de Permisos y Chat en Tiempo Real
+   Salas Públicas y Privadas (Con Invitación Directa y Código)
+   Chat con Emojis, Enlaces e Imágenes
+   Gestión de Permisos (Estilo WhatsApp / Facebook Groups)
 ===================================================== */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -15,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const community = window.communityManager;
     let currentUser = null;
     let currentEventChat = null;
-    let currentFilter = 'all'; // 'all', 'public', 'private'
+    let currentAttachedImage = null; // DataURL de imagen seleccionada
 
     init();
 
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loadChatMessages();
         loadEvents();
         setupEventListeners();
+        checkInviteUrlParams();
     }
 
     function checkAuth() {
@@ -41,6 +43,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const nameEl = document.getElementById('userName');
         if (avatarEl) avatarEl.textContent = currentUser.name?.charAt(0).toUpperCase() || 'U';
         if (nameEl) nameEl.textContent = currentUser.name || 'Usuario';
+    }
+
+    // Verificar si se abrió la página mediante un Link de Invitación directo (?sala=RDSLP-XXXX)
+    function checkInviteUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteCode = urlParams.get('sala') || urlParams.get('invitacion');
+        if (inviteCode) {
+            setTimeout(() => {
+                openJoinCodeModal(null, '', inviteCode);
+            }, 400);
+        }
     }
 
     function setupEventListeners() {
@@ -67,14 +80,70 @@ document.addEventListener('DOMContentLoaded', function () {
             if (e.key === 'Enter') sendMessage();
         });
 
-        // Filtros de eventos (Todos / Abiertos / Privados)
-        document.querySelectorAll('.filter-chip').forEach(chip => {
-            chip.addEventListener('click', function () {
-                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-                this.classList.add('active');
-                currentFilter = this.dataset.filter || 'all';
-                loadEvents();
+        // Emojis Popover
+        const emojiBtn = document.getElementById('emojiToggleBtn');
+        const emojiPopover = document.getElementById('emojiPickerPopover');
+        const closeEmojis = document.getElementById('btnCloseEmojis');
+
+        emojiBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!emojiPopover) return;
+            emojiPopover.style.display = emojiPopover.style.display === 'none' ? 'block' : 'none';
+        });
+
+        closeEmojis?.addEventListener('click', () => {
+            if (emojiPopover) emojiPopover.style.display = 'none';
+        });
+
+        document.querySelectorAll('.emoji-item').forEach(item => {
+            item.addEventListener('click', function () {
+                const chatInput = document.getElementById('chatInput');
+                if (chatInput) {
+                    chatInput.value += this.textContent;
+                    chatInput.focus();
+                }
             });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (emojiPopover && !emojiPopover.contains(e.target) && e.target !== emojiBtn) {
+                emojiPopover.style.display = 'none';
+            }
+        });
+
+        // Adjuntar Imagen
+        const attachBtn = document.getElementById('attachImageBtn');
+        const fileInput = document.getElementById('chatImageInput');
+        const previewBar = document.getElementById('chatImagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const previewName = document.getElementById('previewName');
+        const cancelImgBtn = document.getElementById('btnCancelImage');
+
+        attachBtn?.addEventListener('click', () => {
+            fileInput?.click();
+        });
+
+        fileInput?.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Por favor selecciona un archivo de imagen válido.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                currentAttachedImage = e.target.result;
+                if (previewImg) previewImg.src = currentAttachedImage;
+                if (previewName) previewName.textContent = file.name;
+                if (previewBar) previewBar.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+        });
+
+        cancelImgBtn?.addEventListener('click', () => {
+            clearImageAttachment();
         });
 
         // Modal para crear evento
@@ -101,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('btnGenInviteCode')?.addEventListener('click', generateInviteCode);
 
-        // Modal para unirse con código
+        // Modal para unirse con código o link
         document.getElementById('joinByCodeBtn')?.addEventListener('click', () => {
             openJoinCodeModal();
         });
@@ -109,12 +178,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('cancelJoinInvite')?.addEventListener('click', closeJoinCodeModal);
         document.getElementById('joinInviteForm')?.addEventListener('submit', handleJoinByCodeSubmit);
 
-        // Modal para ver y copiar código de invitación
+        // Modal para ver y compartir invitación (Link y Código)
         document.getElementById('closeViewInviteModal')?.addEventListener('click', closeViewInviteModal);
         document.getElementById('closeViewInviteBtn')?.addEventListener('click', closeViewInviteModal);
         document.getElementById('btnCopyInviteCode')?.addEventListener('click', copyInviteCodeToClipboard);
+        document.getElementById('btnCopyInviteLink')?.addEventListener('click', copyInviteLinkToClipboard);
 
-        // Modal de ajustes de privacidad de la sala (Creador / Admin - Estilo WhatsApp/FB)
+        // Modal de ajustes de privacidad (Creador / Admin)
         document.getElementById('closeSettingsModal')?.addEventListener('click', closeSettingsModal);
         document.getElementById('cancelSettingsModal')?.addEventListener('click', closeSettingsModal);
         document.getElementById('settingsCommunityForm')?.addEventListener('submit', handleSettingsSubmit);
@@ -139,6 +209,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 editInviteInput.value = 'RDSLP-' + Math.random().toString(36).substring(2, 7).toUpperCase();
             }
         });
+
+        // Zoom de imágenes en chat
+        document.getElementById('closeZoomModal')?.addEventListener('click', () => {
+            document.getElementById('imageZoomModal')?.classList.remove('active');
+        });
+        document.getElementById('imageZoomModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'imageZoomModal') {
+                document.getElementById('imageZoomModal')?.classList.remove('active');
+            }
+        });
+    }
+
+    function clearImageAttachment() {
+        currentAttachedImage = null;
+        const fileInput = document.getElementById('chatImageInput');
+        if (fileInput) fileInput.value = '';
+        const previewBar = document.getElementById('chatImagePreview');
+        if (previewBar) previewBar.style.display = 'none';
+        const previewImg = document.getElementById('previewImg');
+        if (previewImg) previewImg.src = '';
     }
 
     function generateInviteCode() {
@@ -147,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (inviteInput) inviteInput.value = code;
     }
 
-    // ========== CHAT ==========
+    // ========== CHAT CON EMOJIS, IMÁGENES Y LINKS ==========
     function loadChatMessages(chatId = 'general') {
         const container = document.getElementById('chatMessages');
         if (!container) return;
@@ -169,12 +259,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const initial = msg.authorName?.charAt(0).toUpperCase() || '?';
             const time = new Date(msg.createdAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 
+            // Formatear enlaces interactivos en el texto
+            const formattedText = parseLinksInText(escapeHtml(msg.text || ''));
+
+            // Imagen adjunta si existe
+            const imageHTML = msg.image
+                ? `<div class="chat-message-image" onclick="openImageZoom('${msg.image}')">
+                     <img src="${msg.image}" alt="Imagen adjunta">
+                   </div>`
+                : '';
+
             return `
                 <div class="chat-message ${isOwn ? 'own' : ''}">
                     <div class="message-avatar">${initial}</div>
                     <div class="message-content">
                         <div class="message-author">${escapeHtml(msg.authorName || 'Usuario')}</div>
-                        <div class="message-text">${escapeHtml(msg.text)}</div>
+                        ${msg.text ? `<div class="message-text">${formattedText}</div>` : ''}
+                        ${imageHTML}
                         <div class="message-time">${time}</div>
                     </div>
                 </div>
@@ -184,16 +285,33 @@ document.addEventListener('DOMContentLoaded', function () {
         container.scrollTop = container.scrollHeight;
     }
 
+    // Convertir URLs en enlaces clickeables de forma segura
+    function parseLinksInText(text) {
+        if (!text) return '';
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, (url) => {
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">🔗 ${url}</a>`;
+        });
+    }
+
+    window.openImageZoom = function (imgSrc) {
+        const modal = document.getElementById('imageZoomModal');
+        const modalImg = document.getElementById('zoomModalImg');
+        if (modalImg) modalImg.src = imgSrc;
+        modal?.classList.add('active');
+    };
+
     function sendMessage() {
         const input = document.getElementById('chatInput');
-        if (!input || !input.value.trim()) return;
+        const text = input ? input.value.trim() : '';
+
+        // Debe haber texto o imagen adjunta
+        if (!text && !currentAttachedImage) return;
 
         if (!currentUser) {
             alert('Debes iniciar sesión para escribir en la comunidad.');
             return;
         }
-
-        const text = input.value.trim();
 
         if (currentEventChat) {
             // Verificar permiso antes de escribir en chat de evento
@@ -202,14 +320,32 @@ document.addEventListener('DOMContentLoaded', function () {
                 alert('🔒 Acceso denegado: Esta sala es privada y requiere invitación.');
                 return;
             }
-            sendEventChatMessage(currentEventChat, text);
+            sendEventChatMessage(currentEventChat, text, currentAttachedImage);
         } else {
             const activeTab = document.querySelector('.chat-tab.active')?.dataset.chat || 'general';
-            community.sendMessage(activeTab, text, currentUser.id, currentUser.name);
+            sendGeneralChatMessage(activeTab, text, currentAttachedImage);
         }
 
-        input.value = '';
+        if (input) input.value = '';
+        clearImageAttachment();
+        const emojiPopover = document.getElementById('emojiPickerPopover');
+        if (emojiPopover) emojiPopover.style.display = 'none';
         loadChatMessages();
+    }
+
+    function sendGeneralChatMessage(chatId, text, image) {
+        const messages = JSON.parse(localStorage.getItem('rdslp_messages') || '[]');
+        const newMessage = {
+            id: Date.now(),
+            chatId,
+            text,
+            image: image || null,
+            authorId: currentUser.id,
+            authorName: currentUser.name,
+            createdAt: new Date().toISOString()
+        };
+        messages.push(newMessage);
+        localStorage.setItem('rdslp_messages', JSON.stringify(messages));
     }
 
     function getEventChatMessages(eventId) {
@@ -217,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return chats[eventId] || [];
     }
 
-    function sendEventChatMessage(eventId, text) {
+    function sendEventChatMessage(eventId, text, image) {
         const chats = JSON.parse(localStorage.getItem('rdslp_event_chats') || '{}');
         if (!chats[eventId]) chats[eventId] = [];
 
@@ -226,38 +362,45 @@ document.addEventListener('DOMContentLoaded', function () {
             authorId: currentUser.id,
             authorName: currentUser.name,
             text,
+            image: image || null,
             createdAt: new Date().toISOString()
         });
 
         localStorage.setItem('rdslp_event_chats', JSON.stringify(chats));
     }
 
-    // ========== EVENTOS Y SALAS ==========
+    // ========== SALAS Y COMUNIDADES (Públicas en lista, Privadas ocultas sin invitación) ==========
     function loadEvents() {
         const container = document.getElementById('eventsList');
         if (!container) return;
 
-        let events = community.getEvents() || [];
+        const allEvents = community.getEvents() || [];
 
-        // Aplicar filtro (Todos, Abiertos, Privados)
-        if (currentFilter === 'public') {
-            events = events.filter(e => e.accessType !== 'private');
-        } else if (currentFilter === 'private') {
-            events = events.filter(e => e.accessType === 'private');
-        }
+        // REGLA CLAVE: En la lista solo aparecen:
+        // 1. Las salas PÚBLICAS (visibles para toda la comunidad).
+        // 2. Las salas PRIVADAS donde el usuario actual ya es miembro o es el organizador.
+        // Las demás salas privadas NO SE VEN (solo se ingresa con Link de Invitación o Código).
+        const visibleEvents = allEvents.filter(event => {
+            if (event.accessType !== 'private') return true; // Pública
+            if (!currentUser) return false;
+            const isOrganizer = (event.organizer === currentUser.id || event.organizer === currentUser.email);
+            const isJoined = event.participants && event.participants.some(p => p.id === currentUser.id);
+            return isOrganizer || isJoined || auth.hasPermission('canManageEvents');
+        });
 
-        if (events.length === 0) {
+        if (visibleEvents.length === 0) {
             container.innerHTML = `
                 <div class="events-empty">
                     <p style="text-align: center; color: var(--text-muted); padding: 30px;">
-                        No hay encuentros programados en esta sección.
+                        No hay salas públicas abiertas en este momento.<br>
+                        <small style="color: var(--text-muted); font-size: 11px;">¡Crea una sala pública o ingresa a una privada con tu link de invitación!</small>
                     </p>
                 </div>
             `;
             return;
         }
 
-        container.innerHTML = events.map(event => {
+        container.innerHTML = visibleEvents.map(event => {
             const date = new Date(event.date);
             const dateStr = date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
             const timeStr = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -270,8 +413,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Badge de privacidad
             const badgeHTML = isPrivate
-                ? '<span class="badge-access badge-private">🔒 Privado (Invitación)</span>'
-                : '<span class="badge-access badge-public">🟢 Abierto</span>';
+                ? '<span class="badge-access badge-private">🔒 Mi Sala Privada</span>'
+                : '<span class="badge-access badge-public">🟢 Pública</span>';
 
             // Avatares de participantes
             const participantsHTML = event.participants?.slice(0, 4).map(p =>
@@ -288,17 +431,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="event-desc">${escapeHtml(event.description)}</div>
                     <div class="event-meta">
                         <span>${participantsCount}/${event.maxParticipants} participantes</span>
-                        <span>Org: ${escapeHtml(event.organizerName || 'Comunidad')}</span>
+                        <span>Admin: ${escapeHtml(event.organizerName || 'Comunidad')}</span>
                     </div>
 
                     ${participantsCount > 0 ? `
                         <div class="event-participants">
                             <div class="participants-avatars">${participantsHTML}</div>
-                            <span class="participants-count">${participantsCount} inscrito${participantsCount !== 1 ? 's' : ''}</span>
+                            <span class="participants-count">${participantsCount} miembro${participantsCount !== 1 ? 's' : ''}</span>
                         </div>
                     ` : ''}
 
-                    <div class="event-actions" style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div class="event-actions" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
                         ${isJoined
                             ? `
                                 <button class="btn-join-event" onclick="openEventChat(${event.id}, '${escapeHtml(event.title)}')" style="background: var(--accent-primary);">
@@ -309,18 +452,16 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </button>
                                 ${!isOrganizer ? `<button class="btn-leave-event" onclick="leaveEvent(${event.id})">Salir</button>` : ''}
                             `
-                            : isPrivate
-                                ? `<button class="btn-join-event" onclick="promptPrivateJoin(${event.id}, '${escapeHtml(event.title)}')">🔑 Unirse con Código</button>`
-                                : `<button class="btn-join-event" onclick="joinEvent(${event.id})" ${participantsCount >= event.maxParticipants ? 'disabled' : ''}>Unirse</button>`
+                            : `<button class="btn-join-event" onclick="joinEvent(${event.id})" ${participantsCount >= event.maxParticipants ? 'disabled' : ''}>Unirse</button>`
                         }
 
                         ${isPrivate && (isOrganizer || auth.hasPermission('canManageEvents'))
-                            ? `<button class="btn-invite-info" onclick="viewInviteCode(${event.id})" title="Ver y compartir código de invitación">🔑 Ver Invitación</button>`
+                            ? `<button class="btn-invite-info" onclick="viewInviteCode(${event.id})" title="Copiar link o código de invitación">🔗 Invitar</button>`
                             : ''
                         }
 
                         ${(isOrganizer || auth.hasPermission('canManageEvents'))
-                            ? `<button class="btn-settings-event" onclick="openEventSettings(${event.id})" title="Ajustes de privacidad del grupo (Público/Privado)">⚙️ Ajustes</button>`
+                            ? `<button class="btn-settings-event" onclick="openEventSettings(${event.id})" title="Ajustes de privacidad de la sala">⚙️</button>`
                             : ''
                         }
 
@@ -358,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
         closeEventModal();
         document.getElementById('eventForm').reset();
         
-        // Si fue privado, mostrar el código de inmediato al creador
+        // Si fue privado, mostrar el enlace y código de invitación de inmediato al creador
         if (created.accessType === 'private') {
             window.viewInviteCode(created.id);
         }
@@ -377,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Validación de permisos
         const hasAccess = community.hasAccessToEvent(eventId, currentUser.id, currentUser.email) || auth.hasPermission('canManageEvents');
         if (!hasAccess) {
-            alert('🔒 Acceso denegado: Este evento es privado y requiere código de invitación.');
+            alert('🔒 Acceso denegado: Esta sala es privada y requiere código o link de invitación.');
             return;
         }
 
@@ -387,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (chatHeader) {
             chatHeader.innerHTML = `
                 <span>🔒 ${escapeHtml(eventTitle)}</span> 
-                <button onclick="closeEventChat()" style="margin-left: 10px; padding: 4px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px;">✕ Salir a General</button>
+                <button onclick="closeEventChat()" style="margin-left: 10px; padding: 4px 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-secondary); cursor: pointer; font-size: 12px;">✕ Salir al General</button>
             `;
         }
 
@@ -405,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loadChatMessages('general');
     };
 
-    // ========== UNIRSE A EVENTOS ==========
+    // ========== UNIRSE A EVENTOS Y SALAS PRIVADAS CON LINK O CÓDIGO ==========
     window.joinEvent = function (eventId) {
         if (!currentUser) {
             alert('Debes iniciar sesión');
@@ -423,11 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    window.promptPrivateJoin = function (eventId, eventTitle) {
-        openJoinCodeModal(eventId, eventTitle);
-    };
-
-    function openJoinCodeModal(eventId = null, eventTitle = '') {
+    window.openJoinCodeModal = function (eventId = null, eventTitle = '', presetCode = '') {
         const modal = document.getElementById('joinInviteModal');
         const targetInput = document.getElementById('joinInviteTargetEventId');
         const promptEl = document.getElementById('joinInvitePrompt');
@@ -435,19 +572,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const errEl = document.getElementById('joinInviteError');
 
         if (errEl) errEl.style.display = 'none';
-        if (codeInput) codeInput.value = '';
+        if (codeInput) codeInput.value = presetCode || '';
 
         if (targetInput) targetInput.value = eventId || '';
 
         if (promptEl) {
             promptEl.textContent = eventTitle 
-                ? `Para unirte a "${eventTitle}", introduce el código de invitación que te compartió el organizador:`
-                : 'Introduce el código de invitación para unirte a una sala o encuentro privado:';
+                ? `Para unirte a "${eventTitle}", introduce el código o pega el enlace de invitación:`
+                : 'Pega el enlace de invitación completo o introduce el código para acceder a la sala privada:';
         }
 
         modal?.classList.add('active');
         codeInput?.focus();
-    }
+    };
 
     function closeJoinCodeModal() {
         document.getElementById('joinInviteModal')?.classList.remove('active');
@@ -456,51 +593,72 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleJoinByCodeSubmit(e) {
         e.preventDefault();
         const targetId = document.getElementById('joinInviteTargetEventId')?.value;
-        const inputCode = document.getElementById('joinInviteInput')?.value.trim().toUpperCase();
+        let rawInput = document.getElementById('joinInviteInput')?.value.trim();
         const errEl = document.getElementById('joinInviteError');
 
-        if (!inputCode) {
-            if (errEl) { errEl.textContent = 'Por favor ingresa un código.'; errEl.style.display = 'block'; }
+        if (!rawInput) {
+            if (errEl) { errEl.textContent = 'Por favor ingresa un código o link de invitación.'; errEl.style.display = 'block'; }
             return;
         }
+
+        // Si pegaron una URL completa (ej: ...comunidad.html?sala=RDSLP-XYZ), extraer el código
+        let extractedCode = rawInput;
+        if (rawInput.includes('?')) {
+            try {
+                const urlObj = new URL(rawInput, window.location.origin);
+                extractedCode = urlObj.searchParams.get('sala') || urlObj.searchParams.get('invitacion') || rawInput;
+            } catch (err) {
+                // Si no era URL válida, usar el texto directo
+            }
+        }
+        extractedCode = extractedCode.trim().toUpperCase();
 
         let targetEvent = null;
 
         if (targetId) {
             targetEvent = (community.getEvents() || []).find(ev => ev.id == targetId);
         } else {
-            targetEvent = community.getEventByInviteCode(inputCode);
+            targetEvent = community.getEventByInviteCode(extractedCode);
         }
 
         if (!targetEvent) {
-            if (errEl) { errEl.textContent = 'No se encontró ningún evento privado con este código.'; errEl.style.display = 'block'; }
+            if (errEl) { 
+                errEl.textContent = 'No se encontró ninguna sala privada con este código o enlace de invitación.'; 
+                errEl.style.display = 'block'; 
+            }
             return;
         }
 
-        const result = community.joinEvent(targetEvent.id, currentUser.id, currentUser.name, inputCode);
+        const result = community.joinEvent(targetEvent.id, currentUser.id, currentUser.name, extractedCode);
 
         if (result.success) {
             closeJoinCodeModal();
             loadEvents();
             openEventChat(targetEvent.id, targetEvent.title);
+            alert(`¡Te has unido con éxito a la sala privada "${targetEvent.title}"!`);
         } else {
             if (errEl) { errEl.textContent = result.message || 'Código de invitación inválido.'; errEl.style.display = 'block'; }
         }
     }
 
-    // ========== VER Y COMPARTIR INVITACIÓN ==========
+    // ========== VER Y COMPARTIR INVITACIÓN (LINK DIRECTO + CÓDIGO) ==========
     window.viewInviteCode = function (eventId) {
         const event = (community.getEvents() || []).find(e => e.id === eventId);
         if (!event || !event.inviteCode) {
-            alert('Este evento no tiene código de invitación privado.');
+            alert('Esta sala no es privada o no tiene código de invitación.');
             return;
         }
 
         const modal = document.getElementById('viewInviteModal');
         const codeDisplay = document.getElementById('displayInviteCode');
+        const linkDisplay = document.getElementById('displayInviteLink');
         const feedback = document.getElementById('copyFeedback');
 
+        // Construir enlace directo
+        const fullInviteLink = `${window.location.origin}${window.location.pathname}?sala=${encodeURIComponent(event.inviteCode)}`;
+
         if (codeDisplay) codeDisplay.textContent = event.inviteCode;
+        if (linkDisplay) linkDisplay.value = fullInviteLink;
         if (feedback) feedback.style.display = 'none';
 
         modal?.classList.add('active');
@@ -513,15 +671,25 @@ document.addEventListener('DOMContentLoaded', function () {
     function copyInviteCodeToClipboard() {
         const code = document.getElementById('displayInviteCode')?.textContent;
         if (!code) return;
+        copyToClipboardText(code, '¡Código copiado al portapapeles!');
+    }
 
-        navigator.clipboard.writeText(code).then(() => {
+    function copyInviteLinkToClipboard() {
+        const link = document.getElementById('displayInviteLink')?.value;
+        if (!link) return;
+        copyToClipboardText(link, '¡Enlace de invitación copiado al portapapeles!');
+    }
+
+    function copyToClipboardText(text, msg) {
+        navigator.clipboard.writeText(text).then(() => {
             const feedback = document.getElementById('copyFeedback');
             if (feedback) {
+                feedback.textContent = msg;
                 feedback.style.display = 'block';
                 setTimeout(() => { feedback.style.display = 'none'; }, 2500);
             }
         }).catch(() => {
-            alert(`Código de invitación: ${code}`);
+            alert(text);
         });
     }
 

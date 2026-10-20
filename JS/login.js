@@ -96,6 +96,78 @@ document.addEventListener('DOMContentLoaded', async function () {
         btnLogin.textContent = loading ? 'Iniciando sesión...' : 'Iniciar Sesión';
     }
 
+    // ── Recuperar / Restablecer Contraseña ───────────────────────────────────
+    const forgotModal   = document.getElementById('forgotPasswordModal');
+    const forgotBtn     = document.getElementById('forgotPasswordBtn');
+    const closeForgot   = document.getElementById('closeForgotModal');
+    const cancelForgot  = document.getElementById('cancelForgotModal');
+    const forgotForm    = document.getElementById('forgotPasswordForm');
+    const forgotMsg     = document.getElementById('forgotMessage');
+
+    forgotBtn?.addEventListener('click', function (e) {
+        e.preventDefault();
+        forgotForm?.reset();
+        if (forgotMsg) forgotMsg.style.display = 'none';
+        forgotModal?.classList.add('active');
+    });
+
+    const hideForgotModal = () => forgotModal?.classList.remove('active');
+    closeForgot?.addEventListener('click', hideForgotModal);
+    cancelForgot?.addEventListener('click', hideForgotModal);
+
+    forgotForm?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const email = document.getElementById('forgotEmail')?.value.trim();
+        const newPass = document.getElementById('newPassword')?.value;
+        const confirmPass = document.getElementById('confirmNewPassword')?.value;
+
+        if (!email || !newPass || !confirmPass) {
+            showForgotMsg('Por favor completa todos los campos.', false);
+            return;
+        }
+
+        if (newPass.length < 6) {
+            showForgotMsg('La nueva contraseña debe tener al menos 6 caracteres.', false);
+            return;
+        }
+
+        if (newPass !== confirmPass) {
+            showForgotMsg('Las contraseñas no coinciden.', false);
+            return;
+        }
+
+        // Buscar y actualizar en almacenamiento local
+        let allUsers = JSON.parse(localStorage.getItem('rdslp_all_users') || '[]');
+        const userIndex = allUsers.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+
+        if (userIndex !== -1) {
+            allUsers[userIndex].password = newPass;
+            localStorage.setItem('rdslp_all_users', JSON.stringify(allUsers));
+            showForgotMsg('¡Contraseña restablecida con éxito! Redirigiendo al login...', true);
+            
+            setTimeout(() => {
+                hideForgotModal();
+                if (emailInput) emailInput.value = email;
+                if (passwordInput) {
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }, 1600);
+        } else {
+            // Si no está en demo local, comprobar servidor o notificar
+            showForgotMsg('No encontramos ninguna cuenta con ese correo electrónico.', false);
+        }
+    });
+
+    function showForgotMsg(msg, isSuccess) {
+        if (!forgotMsg) return;
+        forgotMsg.textContent = msg;
+        forgotMsg.style.display = 'block';
+        forgotMsg.style.background = isSuccess ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+        forgotMsg.style.color = isSuccess ? '#4ade80' : '#f87171';
+        forgotMsg.style.border = isSuccess ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)';
+    }
+
     // Animación shake
     const style = document.createElement('style');
     style.textContent = `
