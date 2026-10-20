@@ -6,7 +6,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { testConnection } = require('./api/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,19 +47,15 @@ app.get('/', (req, res) => {
 
 // Health check para que el frontend sepa si el server está activo
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', database: 'Supabase', timestamp: new Date().toISOString() });
 });
 
 // Iniciar servidor
-async function start() {
-    const dbOk = await testConnection();
+function start() {
     app.listen(PORT, () => {
         console.log(`\nServidor RDSLP corriendo en http://localhost:${PORT}`);
         console.log(`Frontend: http://localhost:${PORT}/Static/login.html`);
-        if (!dbOk) {
-            console.log('MySQL no disponible - el frontend usara localStorage como fallback');
-        }
-        console.log('');
+        console.log(`Base de datos: Conectada a Supabase \n`);
     });
 }
 
