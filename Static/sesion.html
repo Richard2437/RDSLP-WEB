@@ -22,7 +22,7 @@
             </div>
 
             <form class="register-form" id="registerForm">
-                <div class="error-message" id="errorMessage">
+                <div class="error-message" id="errorMessage" style="display: none;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="12" y1="8" x2="12" y2="12"></line>
@@ -31,7 +31,7 @@
                     <span id="errorText">Error en el registro</span>
                 </div>
 
-                <div class="success-message" id="successMessage">
+                <div class="success-message" id="successMessage" style="display: none;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -121,7 +121,11 @@
                 <div class="form-group legal-consent-group">
                     <label class="terms-checkbox">
                         <input type="checkbox" id="terms" name="terms" required>
-                        <span>He leído y acepto los <button type="button" class="legal-btn-link" id="openTermsRegister">Términos y Condiciones</button> y la <button type="button" class="legal-btn-link" id="openHabeasRegister">Política de Habeas Data</button>, declarando expresamente: <strong>"Me hago cargo de todo lo que publique y haga parte"</strong>.</span>
+                        <span>He leído y acepto los <button type="button" class="legal-btn-link"
+                                id="openTermsRegister">Términos y Condiciones</button> y la <button type="button"
+                                class="legal-btn-link" id="openHabeasRegister">Política de Habeas Data</button>,
+                            declarando expresamente: <strong>"Me hago cargo de todo lo que publique y haga
+                                parte"</strong>.</span>
                     </label>
                 </div>
 
@@ -140,9 +144,65 @@
         </div>
     </div>
 
-    <script src="../JS/api-client.js"></script>
+    <!-- Scripts actualizados -->
     <script src="../JS/legal.js"></script>
-    <script src="../JS/sesion.js"></script>
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+        // Conexión directa a Supabase
+        const supabaseUrl = 'https://ewgmnqhsucmzjhgvqleg.supabase.co'
+        const supabaseAnonKey = 'sb_publishable__5CVGdsxC2OTqYwX--7K6g_tlmB8WFY'
+        const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault()
+
+            const firstName = document.getElementById('firstName').value
+            const lastName = document.getElementById('lastName').value
+            const email = document.getElementById('email').value
+            const password = document.getElementById('password').value
+            const confirmPassword = document.getElementById('confirmPassword').value
+
+            const errorDiv = document.getElementById('errorMessage')
+            const errorText = document.getElementById('errorText')
+            const successDiv = document.getElementById('successMessage')
+
+            // Ocultar mensajes previos
+            errorDiv.style.display = 'none'
+            successDiv.style.display = 'none'
+
+            if (password !== confirmPassword) {
+                errorText.textContent = 'Las contraseñas no coinciden'
+                errorDiv.style.display = 'flex'
+                return
+            }
+
+            try {
+                // Registrar usuario en Supabase Auth guardando nombre y apellido en metadata
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            first_name: firstName,
+                            last_name: lastName
+                        }
+                    }
+                })
+
+                if (error) throw error
+
+                successDiv.style.display = 'flex'
+                setTimeout(() => {
+                    window.location.href = './login.html'
+                }, 2000)
+
+            } catch (err) {
+                errorText.textContent = err.message || 'Error al crear la cuenta'
+                errorDiv.style.display = 'flex'
+            }
+        })
+    </script>
 </body>
 
 </html>
