@@ -13,34 +13,14 @@
       ]
     }
   ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1.php" },
-    { "source": "/LanguagesSection/:slug", "destination": "/LanguagesSection/:slug.html" },
-    { "source": "/DatabasesSection/:slug", "destination": "/DatabasesSection/:slug.html" },
-    { "source": "/Static/login", "destination": "/Static/login.html" },
-    { "source": "/Static/dashboard", "destination": "/Static/dashboard.html" },
-    { "source": "/Static/sesion", "destination": "/Static/sesion.html" },
-    { "source": "/Static/registro", "destination": "/Static/sesion.html" },
-    { "source": "/Static/muro", "destination": "/Static/muro.html" },
-    { "source": "/Static/comunidad", "destination": "/Static/comunidad.html" },
-    { "source": "/Static/ejercicios", "destination": "/Static/ejercicios.html" },
-    { "source": "/Static/libros", "destination": "/Static/libros.html" },
-    { "source": "/Static/logica", "destination": "/Static/logica.html" },
-    { "source": "/Static/perfil", "destination": "/Static/perfil.html" },
-    { "source": "/Static/databases", "destination": "/DatabasesSection/databases.html" },
-    { "source": "/dashboard", "destination": "/Static/dashboard.html" },
-    { "source": "/login", "destination": "/Static/login.html" },
-    { "source": "/sesion", "destination": "/Static/sesion.html" },
-    { "source": "/registro", "destination": "/Static/sesion.html" },
-    { "source": "/lenguajes", "destination": "/LanguagesSection/lenguajes.html" },
-    { "source": "/databases", "destination": "/DatabasesSection/databases.html" },
-    { "source": "/muro", "destination": "/Static/muro.html" },
-    { "source": "/comunidad", "destination": "/Static/comunidad.html" },
-    { "source": "/ejercicios", "destination": "/Static/ejercicios.html" },
-    { "source": "/libros", "destination": "/Static/libros.html" },
-    { "source": "/logica", "destination": "/Static/logica.html" },
-    { "source": "/perfil", "destination": "/Static/perfil.html" }
+  "routes": [
+    { "src": "/", "dest": "/Static/login.html" },
+    { "src": "/(.*)", "dest": "/$1" }
   ],
+  "builds": [
+    { "src": "api/**/*.php", "use": "@vercel/php" }
+  ],
+
   "functions": {
     "api/*.php": {
       "runtime": "vercel-php@0.9.0"
