@@ -1,1 +1,0 @@
-// server.js deprecated – the application now runs on PHP router (index.php).
