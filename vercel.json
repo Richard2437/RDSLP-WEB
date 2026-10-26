@@ -1,12 +1,30 @@
 {
-  "rewrites": [
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
     {
-      "source": "/",
-      "destination": "/Static/dashboard.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/Static/$1"
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization" }
+      ]
     }
+  ],
+  "rewrites": [
+    { "source": "/api/config", "destination": "/api/config.js" },
+    { "source": "/dashboard", "destination": "/Static/dashboard.html" },
+    { "source": "/login", "destination": "/Static/login.html" },
+    { "source": "/sesion", "destination": "/Static/sesion.html" },
+    { "source": "/registro", "destination": "/Static/sesion.html" },
+    { "source": "/muro", "destination": "/Static/muro.html" },
+    { "source": "/comunidad", "destination": "/Static/comunidad.html" },
+    { "source": "/ejercicios", "destination": "/Static/ejercicios.html" },
+    { "source": "/libros", "destination": "/Static/libros.html" },
+    { "source": "/logica", "destination": "/Static/logica.html" },
+    { "source": "/perfil", "destination": "/Static/perfil.html" },
+    { "source": "/databases", "destination": "/Static/databases.html" }
   ]
 }
