@@ -905,13 +905,7 @@ db.usuarios.<span class="function">updateOne</span>(
         document.getElementById('editBio').value = currentUser.bio || '';
     }
 
-    function loadAdminPanel() {
-        // Stats
-        const users = auth.getAllUsers();
-        document.getElementById('totalUsers').textContent = users.length;
-        document.getElementById('totalComments').textContent = content.getComments().length;
-        document.getElementById('totalEvents').textContent = community.getEvents().length;
-
+    async function loadAdminPanel() {
         // Tabs logic
         const tabs = document.querySelectorAll('.admin-tab');
         tabs.forEach(tab => {
@@ -931,63 +925,96 @@ db.usuarios.<span class="function">updateOne</span>(
         });
 
         // Initial render
-        renderUserList('active-users');
+        await renderUserList('active-users');
     }
 
-    function renderUserList(filter) {
+    async function renderUserList(filter) {
         const usersList = document.getElementById('adminUsersList');
         const listTitle = document.getElementById('adminListTitle');
-        const allUsers = auth.getAllUsers();
-        let usersToRender = [];
 
+        if (!usersList) return;
+
+        usersList.innerHTML = '<div style="padding: 20px; color: var(--text-secondary); text-align: center;"><div class="loader-small" style="display: inline-block; margin-right: 8px;"></div> Cargando usuarios desde Supabase...</div>';
+
+        let allUsers = [];
+        try {
+            if (window.rdslpSupabase) {
+                allUsers = await window.rdslpSupabase.getAllUsers();
+            } else {
+                allUsers = auth.getAllUsers();
+            }
+        } catch (err) {
+            console.error('Error cargando usuarios:', err);
+            usersList.innerHTML = `<div style="padding: 20px; color: #ef4444; text-align: center;">Error al conectar con Supabase: ${escapeHtml(err.message)}</div>`;
+            return;
+        }
+
+        // Actualizar contador
+        const totalUsersEl = document.getElementById('totalUsers');
+        if (totalUsersEl) totalUsersEl.textContent = allUsers.length;
+
+        const totalCommentsEl = document.getElementById('totalComments');
+        if (totalCommentsEl && typeof content !== 'undefined') {
+            totalCommentsEl.textContent = content.getComments ? content.getComments().length : 0;
+        }
+
+        const totalEventsEl = document.getElementById('totalEvents');
+        if (totalEventsEl && typeof community !== 'undefined') {
+            totalEventsEl.textContent = community.getEvents ? community.getEvents().length : 0;
+        }
+
+        let usersToRender = [];
         if (filter === 'active-users') {
-            usersToRender = allUsers.filter(u => !u.isBanned);
-            listTitle.textContent = 'Usuarios Activos';
+            usersToRender = allUsers.filter(u => !u.isBanned && u.role !== 'banned');
+            listTitle.textContent = 'Usuarios Activos (' + usersToRender.length + ')';
         } else {
-            usersToRender = allUsers.filter(u => u.isBanned);
-            listTitle.textContent = 'Usuarios Baneados';
+            usersToRender = allUsers.filter(u => u.isBanned || u.role === 'banned');
+            listTitle.textContent = 'Usuarios Baneados (' + usersToRender.length + ')';
         }
 
         if (usersToRender.length === 0) {
-            usersList.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No hay usuarios en esta lista.</p>';
+            usersList.innerHTML = '<p style="color: var(--text-muted); padding: 25px; text-align: center;">No hay usuarios en esta lista.</p>';
             return;
         }
 
         usersList.innerHTML = usersToRender.map(u => {
-            const isSelf = currentUser && u.id === currentUser.id;
+            const isSelf = currentUser && (u.id === currentUser.id || u.email === currentUser.email);
             const isAdmin = u.role === 'admin';
+            const isBanned = u.isBanned || u.role === 'banned';
 
             // Select de roles
             let roleSelect = '';
-            if (!isSelf) {
+            if (!isSelf && !isBanned) {
                 roleSelect = `
-                    <select onchange="changeUserRole(${u.id}, this.value)" class="role-select" style="padding: 6px; border-radius: 6px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); margin-right: 10px;">
+                    <select onchange="changeUserRole('${u.id}', this.value)" class="role-select" style="padding: 6px 10px; border-radius: 6px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); margin-right: 10px; cursor: pointer;">
                         <option value="user" ${u.role === 'user' ? 'selected' : ''}>Usuario</option>
                         <option value="moderator" ${u.role === 'moderator' ? 'selected' : ''}>Moderador</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador</option>
                     </select>
                 `;
             } else {
-                roleSelect = `<span class="user-role-badge ${u.role}" style="margin-right: 10px;">${u.role}</span>`;
+                roleSelect = `<span class="user-role-badge ${u.role}" style="margin-right: 10px; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: rgba(99,102,241,0.15); color: #818cf8;">${u.role}</span>`;
             }
 
-            // Botón de ban
+            // Botón de ban / desbanear
             let banBtn = '';
             if (!isSelf && !isAdmin) {
-                if (u.isBanned) {
-                    banBtn = `<button onclick="toggleBanUser(${u.id}, false)" style="padding: 6px 12px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: var(--success-color); border: none; cursor: pointer;">Desbanear</button>`;
+                if (isBanned) {
+                    banBtn = `<button onclick="toggleBanUser('${u.id}', false)" style="padding: 6px 14px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); cursor: pointer; font-weight: 500;">Desbanear</button>`;
                 } else {
-                    banBtn = `<button onclick="toggleBanUser(${u.id}, true)" style="padding: 6px 12px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: var(--error-color); border: none; cursor: pointer;">Banear</button>`;
+                    banBtn = `<button onclick="toggleBanUser('${u.id}', true)" style="padding: 6px 14px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-weight: 500;">Banear</button>`;
                 }
             }
 
+            const initial = (u.name ? u.name.charAt(0) : 'U').toUpperCase();
+
             return `
-                <div class="user-item" style="display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid var(--border-color);">
+                <div class="user-item" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
                     <div class="user-info" style="display: flex; align-items: center; gap: 15px;">
-                        <div class="user-avatar-small" style="width: 40px; height: 40px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">${u.name.charAt(0).toUpperCase()}</div>
+                        <div class="user-avatar-small" style="width: 42px; height: 42px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">${initial}</div>
                         <div>
-                            <div class="user-name" style="font-weight: 500; color: var(--text-primary);">${u.name} ${isSelf ? '(Tú)' : ''}</div>
-                            <div class="user-email" style="font-size: 13px; color: var(--text-secondary);">${u.email}</div>
+                            <div class="user-name" style="font-weight: 600; color: var(--text-primary);">${escapeHtml(u.name)} ${isSelf ? '<span style="color: #818cf8; font-size: 12px;">(Tú)</span>' : ''}</div>
+                            <div class="user-email" style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(u.email)}</div>
                         </div>
                     </div>
                     <div class="user-actions" style="display: flex; align-items: center;">
@@ -999,37 +1026,45 @@ db.usuarios.<span class="function">updateOne</span>(
         }).join('');
     }
 
-    // Funciones globales para admin
-    window.changeUserRole = function (userId, newRole) {
+    // Funciones globales para admin conectadas con Supabase
+    window.changeUserRole = async function (userId, newRole) {
         if (!currentUser || currentUser.role !== 'admin') return;
 
-        if (confirm(`¿Estás seguro de cambiar el rol de este usuario a ${newRole}?`)) {
-            const result = auth.changeUserRole(userId, newRole);
-            if (result.success) {
-                // Recargar lista manteniendo el filtro actual
+        if (confirm(`¿Estás seguro de cambiar los permisos/rol de este usuario a "${newRole}" en Supabase?`)) {
+            try {
+                if (window.rdslpSupabase) {
+                    await window.rdslpSupabase.changeUserRole(userId, newRole);
+                } else {
+                    auth.changeUserRole(userId, newRole);
+                }
                 const activeTab = document.querySelector('.admin-tab.active');
-                renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
-            } else {
-                alert(result.message);
+                await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+            } catch (err) {
+                alert('Error al actualizar rol en Supabase: ' + err.message);
+                const activeTab = document.querySelector('.admin-tab.active');
+                await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
             }
         } else {
-            // Revertir selección si cancela (opcional, requeriría más lógica de UI)
             const activeTab = document.querySelector('.admin-tab.active');
-            renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+            await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
         }
     };
 
-    window.toggleBanUser = function (userId, ban) {
+    window.toggleBanUser = async function (userId, ban) {
         if (!currentUser || currentUser.role !== 'admin') return;
 
         const action = ban ? 'banear' : 'desbanear';
-        if (confirm(`¿Estás seguro de ${action} a este usuario?`)) {
-            const result = ban ? auth.banUser(userId) : auth.unbanUser(userId);
-            if (result.success) {
+        if (confirm(`¿Estás seguro de ${action} a este usuario en Supabase?`)) {
+            try {
+                if (window.rdslpSupabase) {
+                    await window.rdslpSupabase.toggleBanUser(userId, ban);
+                } else {
+                    if (ban) auth.banUser(userId); else auth.unbanUser(userId);
+                }
                 const activeTab = document.querySelector('.admin-tab.active');
-                renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
-            } else {
-                alert(result.message);
+                await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+            } catch (err) {
+                alert(`Error al ${action} usuario en Supabase: ` + err.message);
             }
         }
     };

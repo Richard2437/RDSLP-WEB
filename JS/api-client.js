@@ -10,13 +10,10 @@ class ApiClient {
     }
 
     _detectBaseUrl() {
-        // Si estamos corriendo desde el servidor Express, usar misma URL
-        const loc = window.location;
-        if (loc.port === '3000' || loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1' && loc.hostname !== '') {
-            return loc.origin;
+        if (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.origin.startsWith('file:')) {
+            return window.location.origin;
         }
-        // Si estamos abriendo el HTML directo (file:// o Live Server en otro puerto)
-        return 'http://localhost:3000';
+        return '';
     }
 
     async checkServer() {

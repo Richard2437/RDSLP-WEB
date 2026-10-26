@@ -47,137 +47,83 @@ const PERMISSIONS = {
     }
 };
 
-// Usuarios de demostración
-const DEMO_USERS = [
-    {
-        id: 1,
-        email: 'admin@rdslp.com',
-        password: 'admin123',
-        name: 'Administrador',
-        role: 'admin',
-        avatar: 'AD',
-        bio: 'Administrador del sistema RDSLP',
-        createdAt: '2024-01-01T00:00:00Z'
-    },
-    {
-        id: 2,
-        email: 'moderador@rdslp.com',
-        password: 'mod123',
-        name: 'Moderador',
-        role: 'moderator',
-        avatar: 'MO',
-        bio: 'Moderador de contenido',
-        createdAt: '2024-01-01T00:00:00Z'
-    },
-    {
-        id: 3,
-        email: 'usuario@rdslp.com',
-        password: 'user123',
-        name: 'Usuario Demo',
-        role: 'user',
-        avatar: 'US',
-        bio: 'Usuario de demostración',
-        createdAt: '2024-01-01T00:00:00Z'
-    },
-    {
-        id: 4,
-        email: 'dev@rdslp.com',
-        password: 'dev123',
-        name: 'Desarrollador',
-        role: 'user',
-        avatar: 'DE',
-        bio: 'Desarrollador y entusiasta de la programación',
-        createdAt: '2024-01-01T00:00:00Z'
-    }
-];
-
-// Auth Manager
+// Auth Manager conectado con Supabase
 class AuthManager {
     constructor() {
         this.currentUser = null;
+        this.cachedUsers = [];
         this.init();
     }
 
     init() {
-        // Inicializar usuarios demo si no existen
-        if (!localStorage.getItem('rdslp_all_users')) {
-            localStorage.setItem('rdslp_all_users', JSON.stringify(DEMO_USERS));
+        this.syncCurrentUser();
+    }
+
+    async syncCurrentUser() {
+        if (window.rdslpSupabase) {
+            try {
+                const user = await window.rdslpSupabase.getCurrentUser();
+                if (user) {
+                    this.currentUser = user;
+                }
+            } catch (err) {
+                console.warn('[RDSLP] Sincronización de usuario Supabase:', err.message);
+            }
         }
     }
 
-    // Obtener todos los usuarios
+    // Obtener todos los usuarios (desde Supabase si está disponible)
     getAllUsers() {
-        return JSON.parse(localStorage.getItem('rdslp_all_users') || '[]');
+        return this.cachedUsers;
+    }
+
+    async fetchAllUsers() {
+        if (window.rdslpSupabase) {
+            try {
+                this.cachedUsers = await window.rdslpSupabase.getAllUsers();
+                return this.cachedUsers;
+            } catch (e) {
+                console.error('[RDSLP] Error obteniendo usuarios de Supabase:', e);
+            }
+        }
+        return this.cachedUsers;
     }
 
     // Buscar usuario por email
     findUserByEmail(email) {
-        const users = this.getAllUsers();
-        return users.find(u => u.email === email);
+        return this.cachedUsers.find(u => u.email === email);
     }
 
-    // Login
-    login(email, password, remember = false) {
-        const user = this.findUserByEmail(email);
-
-        if (!user || user.password !== password) {
-            return { success: false, message: 'Correo o contraseña incorrectos' };
+    // Login mediante Supabase
+    async login(email, password, remember = true) {
+        if (window.rdslpSupabase) {
+            try {
+                const data = await window.rdslpSupabase.signInWithEmail(email, password);
+                this.currentUser = await window.rdslpSupabase.getCurrentUser();
+                return { success: true, user: this.currentUser };
+            } catch (err) {
+                return { success: false, message: err.message || 'Error al iniciar sesión' };
+            }
         }
-
-        if (user.isBanned) {
-            return { success: false, message: 'Tu cuenta ha sido suspendida. Contacta al administrador.' };
-        }
-
-        const userData = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            avatar: user.avatar,
-            bio: user.bio,
-            loginTime: new Date().toISOString()
-        };
-
-        if (remember) {
-            localStorage.setItem('rdslp_user', JSON.stringify(userData));
-        } else {
-            sessionStorage.setItem('rdslp_user', JSON.stringify(userData));
-        }
-
-        this.currentUser = userData;
-        return { success: true, user: userData };
+        return { success: false, message: 'Cliente de Supabase no disponible' };
     }
 
-    // Registro
-    register(userData) {
-        const users = this.getAllUsers();
-
-        if (users.some(u => u.email === userData.email)) {
-            return { success: false, message: 'Este correo ya está registrado' };
+    // Registro mediante Supabase
+    async register(userData) {
+        if (window.rdslpSupabase) {
+            try {
+                const data = await window.rdslpSupabase.signUpWithEmail({
+                    email: userData.email,
+                    password: userData.password,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName
+                });
+                return { success: true, user: data.user };
+            } catch (err) {
+                return { success: false, message: err.message || 'Error al registrar' };
+            }
         }
-
-        const newUser = {
-            id: Date.now(),
-            email: userData.email,
-            password: userData.password,
-            name: `${userData.firstName} ${userData.lastName}`,
-            role: 'user', // Nuevos usuarios siempre son 'user'
-            avatar: userData.firstName.charAt(0).toUpperCase() + userData.lastName.charAt(0).toUpperCase(),
-            bio: '',
-            isBanned: false,
-            habeasDataAccepted: true,
-            termsAccepted: true,
-            legalConsentDate: new Date().toISOString(),
-            createdAt: new Date().toISOString()
-        };
-
-        users.push(newUser);
-        localStorage.setItem('rdslp_all_users', JSON.stringify(users));
-        // Notify other parts of the app that user list has changed
-        if (typeof window !== 'undefined' && window.dispatchEvent) {
-            window.dispatchEvent(new CustomEvent('userListUpdated'));
-        }
-        return { success: true, user: newUser };
+        return { success: false, message: 'Cliente de Supabase no disponible' };
     }
 
     // Obtener usuario actual
@@ -239,68 +185,63 @@ class AuthManager {
     }
 
     // Cambiar rol de usuario (solo admin)
-    changeUserRole(userId, newRole) {
+    async changeUserRole(userId, newRole) {
         if (!this.hasPermission('canManageUsers')) {
             return { success: false, message: 'No tienes permisos para esta acción' };
         }
-
-        const users = this.getAllUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
-
-        if (userIndex === -1) return { success: false, message: 'Usuario no encontrado' };
-
-        users[userIndex].role = newRole;
-        localStorage.setItem('rdslp_all_users', JSON.stringify(users));
-
+        if (window.rdslpSupabase) {
+            try {
+                await window.rdslpSupabase.changeUserRole(userId, newRole);
+                return { success: true };
+            } catch (err) {
+                return { success: false, message: err.message };
+            }
+        }
         return { success: true };
     }
 
     // Banear usuario (solo admin)
-    banUser(userId) {
+    async banUser(userId) {
         if (!this.hasPermission('canManageUsers')) {
             return { success: false, message: 'No tienes permisos para esta acción' };
         }
-
-        const users = this.getAllUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
-
-        if (userIndex === -1) return { success: false, message: 'Usuario no encontrado' };
-
-        // No permitir banear a otros admins
-        if (users[userIndex].role === 'admin') {
-            return { success: false, message: 'No puedes banear a un administrador' };
+        if (window.rdslpSupabase) {
+            try {
+                await window.rdslpSupabase.toggleBanUser(userId, true);
+                return { success: true };
+            } catch (err) {
+                return { success: false, message: err.message };
+            }
         }
-
-        users[userIndex].isBanned = true;
-        localStorage.setItem('rdslp_all_users', JSON.stringify(users));
-        if (typeof window !== 'undefined' && window.dispatchEvent) { window.dispatchEvent(new CustomEvent('userListUpdated')); }
-
         return { success: true };
     }
 
     // Desbanear usuario (solo admin)
-    unbanUser(userId) {
+    async unbanUser(userId) {
         if (!this.hasPermission('canManageUsers')) {
             return { success: false, message: 'No tienes permisos para esta acción' };
         }
-
-        const users = this.getAllUsers();
-        const userIndex = users.findIndex(u => u.id === userId);
-
-        if (userIndex === -1) return { success: false, message: 'Usuario no encontrado' };
-
-        users[userIndex].isBanned = false;
-        localStorage.setItem('rdslp_all_users', JSON.stringify(users));
-        if (typeof window !== 'undefined' && window.dispatchEvent) { window.dispatchEvent(new CustomEvent('userListUpdated')); }
-
+        if (window.rdslpSupabase) {
+            try {
+                await window.rdslpSupabase.toggleBanUser(userId, false);
+                return { success: true };
+            } catch (err) {
+                return { success: false, message: err.message };
+            }
+        }
         return { success: true };
     }
 
     // Logout
     logout() {
-        localStorage.removeItem('rdslp_user');
-        sessionStorage.removeItem('rdslp_user');
-        this.currentUser = null;
+        if (window.rdslpSupabase) {
+            window.rdslpSupabase.signOut();
+        } else {
+            localStorage.removeItem('rdslp_user');
+            sessionStorage.removeItem('rdslp_user');
+            this.currentUser = null;
+            window.location.href = 'login.html';
+        }
     }
 }
 

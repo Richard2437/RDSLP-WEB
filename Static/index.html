@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="RDSLP Dashboard - Explora lógica de programación, lenguajes, bases de datos y libros.">
+    <title>Dashboard | RDSLP</title>
+    <link rel="stylesheet" href="../Styles/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">RD</div>
+                <span class="logo-text">RDSLP</span>
+            </div>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item"><a href="dashboard.html" class="nav-link active"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg><span>Inicio</span></a></li>
+                <li class="nav-item"><a href="muro.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="9" y1="21" x2="9" y2="9"></line>
+                        </svg><span>Muro</span></a></li>
+                <li class="nav-item"><a href="ejercicios.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg><span>Ejercicios</span></a></li>
+                <li class="nav-item"><a href="logica.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg><span>Lógica</span></a></li>
+                <li class="nav-item"><a href="../LanguagesSection/lenguajes.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg><span>Lenguajes</span></a></li>
+                <li class="nav-item"><a href="../DatabasesSection/databases.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg><span>Bases de Datos</span></a></li>
+                <li class="nav-item"><a href="libros.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg><span>Libros</span></a></li>
+                <li class="nav-item"><a href="comunidad.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                        </svg><span>Comunidad</span></a></li>
+                <li class="nav-item"><a href="perfil.html" class="nav-link"><svg width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg><span>Perfil</span></a></li>
+                <li class="nav-item admin-only" id="adminNavItem" style="display: none;">
+                    <a href="#" class="nav-link" data-section="admin">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                            </path>
+                        </svg>
+                        <span>Admin</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-role-badge" id="userRoleBadge">Usuario</div>
+            <button class="logout-btn" id="logoutBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+                <h1 class="page-title" id="pageTitle">Inicio</h1>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" placeholder="Buscar..." id="searchInput">
+                </div>
+                <div class="user-menu" id="userMenu">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span class="user-name" id="userName">Usuario</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div class="content-wrapper">
+            <!-- HOME SECTION -->
+            <section class="content-section active" id="section-home">
+                <div class="welcome-banner">
+                    <div class="welcome-text">
+                        <h2>Bienvenido a RDSLP</h2>
+                        <p>Explora recursos de programación, lenguajes, bases de datos y libros para mejorar tus
+                            habilidades.</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon logica-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="16 18 22 12 16 6"></polyline>
+                                <polyline points="8 6 2 12 8 18"></polyline>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <h3>15</h3>
+                            <p>Ejercicios de Lógica</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon lenguajes-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <h3>12</h3>
+                            <p>Lenguajes Disponibles</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon db-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <h3>8</h3>
+                            <p>Bases de Datos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon libros-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-info">
+                            <h3>25</h3>
+                            <p>Libros Recomendados</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-access">
+                    <h3 class="section-title">Acceso Rápido</h3>
+                    <div class="quick-cards">
+                        <div class="quick-card" data-go="logica">
+                            <div class="quick-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="16 18 22 12 16 6"></polyline>
+                                    <polyline points="8 6 2 12 8 18"></polyline>
+                                </svg>
+                            </div>
+                            <h4>Lógica de Programación</h4>
+                            <p>Ejercicios y conceptos fundamentales</p>
+                        </div>
+                        <div class="quick-card" data-go="lenguajes">
+                            <div class="quick-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                            </div>
+                            <h4>Lenguajes de Programación</h4>
+                            <p>Explora diferentes lenguajes</p>
+                        </div>
+                        <div class="quick-card" data-go="databases">
+                            <div class="quick-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                </svg>
+                            </div>
+                            <h4>Bases de Datos</h4>
+                            <p>SQL, NoSQL y más</p>
+                        </div>
+                        <div class="quick-card" data-go="comunidad">
+                            <div class="quick-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                            </div>
+                            <h4>Comunidad</h4>
+                            <p>Chat y eventos virtuales</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LOGICA SECTION -->
+            <section class="content-section" id="section-logica">
+                <div class="section-header">
+                    <h2>Lógica de Programación</h2>
+                    <p>Desarrolla tu pensamiento lógico con estos ejercicios y conceptos</p>
+                </div>
+
+                <div class="cards-grid" id="logicaGrid">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+            </section>
+
+            <!-- LENGUAJES SECTION -->
+            <section class="content-section" id="section-lenguajes">
+                <div class="section-header">
+                    <h2>Lenguajes de Programación</h2>
+                    <p>Explora los lenguajes más populares y sus características</p>
+                </div>
+
+                <div class="cards-grid" id="lenguajesGrid">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+            </section>
+
+            <!-- DATABASES SECTION -->
+            <section class="content-section" id="section-databases">
+                <div class="section-header">
+                    <h2>Bases de Datos</h2>
+                    <p>Aprende sobre bases de datos relacionales y no relacionales</p>
+                </div>
+
+                <div class="db-tabs">
+                    <button class="db-tab active" data-tab="relacional">Relacionales (SQL)</button>
+                    <button class="db-tab" data-tab="norelacional">No Relacionales (NoSQL)</button>
+                    <button class="db-tab" data-tab="ejercicios">Ejercicios</button>
+                </div>
+
+                <div class="db-content" id="dbContent">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+            </section>
+
+            <!-- LIBROS SECTION -->
+            <section class="content-section" id="section-libros">
+                <div class="section-header">
+                    <h2>Libros Recomendados</h2>
+                    <p>Lecturas esenciales para todo programador</p>
+                </div>
+
+                <div class="cards-grid books-grid" id="librosGrid">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+            </section>
+
+            <!-- COMUNIDAD SECTION -->
+            <section class="content-section" id="section-comunidad">
+                <div class="section-header">
+                    <h2>Comunidad</h2>
+                    <p>Conecta con otros programadores y participa en eventos</p>
+                </div>
+
+                <div class="community-layout">
+                    <!-- Chat Section -->
+                    <div class="community-chat">
+                        <div class="chat-header">
+                            <h3>Chat General</h3>
+                            <div class="chat-tabs">
+                                <button class="chat-tab active" data-chat="general">General</button>
+                                <button class="chat-tab" data-chat="ayuda">Ayuda</button>
+                            </div>
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Mensajes se cargan dinámicamente -->
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
+                            <button class="send-btn" id="sendMessageBtn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Events Section -->
+                    <div class="community-events">
+                        <div class="events-header">
+                            <h3>Encuentros Virtuales</h3>
+                            <button class="btn-create-event" id="createEventBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Crear Evento
+                            </button>
+                        </div>
+                        <div class="events-list" id="eventsList">
+                            <!-- Eventos se cargan dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PERFIL SECTION -->
+            <section class="content-section" id="section-perfil">
+                <div class="section-header">
+                    <h2>Mi Perfil</h2>
+                    <p>Administra tu información personal</p>
+                </div>
+
+                <div class="profile-container">
+                    <div class="profile-card">
+                        <div class="profile-header">
+                            <div class="profile-avatar" id="profileAvatar">U</div>
+                            <div class="profile-info">
+                                <h3 id="profileName">Usuario</h3>
+                                <p id="profileEmail">usuario@email.com</p>
+                                <span class="profile-role" id="profileRole">Usuario</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-stats">
+                            <div class="profile-stat">
+                                <span class="stat-value" id="statCourses">0</span>
+                                <span class="stat-label">Cursos</span>
+                            </div>
+                            <div class="profile-stat">
+                                <span class="stat-value" id="statComments">0</span>
+                                <span class="stat-label">Comentarios</span>
+                            </div>
+                            <div class="profile-stat">
+                                <span class="stat-value" id="statRatings">0</span>
+                                <span class="stat-label">Calificaciones</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>Configuración de Cuenta</h3>
+
+                        <form class="settings-form" id="settingsForm">
+                            <div class="form-section">
+                                <h4>Información Personal</h4>
+
+                                <div class="form-group">
+                                    <label for="editName">Nombre completo</label>
+                                    <input type="text" id="editName" placeholder="Tu nombre">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="editEmail">Correo electrónico</label>
+                                    <input type="email" id="editEmail" placeholder="tu@email.com" disabled>
+                                    <small>El correo no se puede modificar</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="editBio">Biografía</label>
+                                    <textarea id="editBio" placeholder="Cuéntanos sobre ti..." rows="3"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h4>Cambiar Contraseña</h4>
+
+                                <div class="form-group">
+                                    <label for="currentPassword">Contraseña actual</label>
+                                    <input type="password" id="currentPassword" placeholder="Tu contraseña actual">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="newPassword">Nueva contraseña</label>
+                                    <input type="password" id="newPassword" placeholder="Nueva contraseña">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="confirmNewPassword">Confirmar nueva contraseña</label>
+                                    <input type="password" id="confirmNewPassword"
+                                        placeholder="Confirma la nueva contraseña">
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn-save">Guardar Cambios</button>
+                                <button type="button" class="btn-cancel" id="cancelChanges">Cancelar</button>
+                            </div>
+
+                            <div class="settings-message" id="settingsMessage"></div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADMIN SECTION -->
+            <section class="content-section" id="section-admin">
+                <div class="section-header">
+                    <h2>Panel de Administración</h2>
+                    <p>Gestiona usuarios y contenido del sistema</p>
+                </div>
+
+                <div class="admin-stats-overview" style="display: flex; gap: 20px; margin-bottom: 30px;">
+                    <div class="stat-card" style="flex: 1;">
+                        <div class="stat-info">
+                            <h3 id="totalUsers">0</h3>
+                            <p>Usuarios Totales</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="flex: 1;">
+                        <div class="stat-info">
+                            <h3 id="totalComments">0</h3>
+                            <p>Comentarios</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="flex: 1;">
+                        <div class="stat-info">
+                            <h3 id="totalEvents">0</h3>
+                            <p>Eventos</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-tabs-container"
+                    style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 20px;">
+                    <button class="admin-tab active" data-tab="active-users"
+                        style="background: none; border: none; padding: 10px 0; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--accent-primary); font-weight: 600;">Usuarios
+                        Activos</button>
+                    <button class="admin-tab" data-tab="banned-users"
+                        style="background: none; border: none; padding: 10px 0; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;">Usuarios
+                        Baneados</button>
+                </div>
+
+                <div class="admin-content">
+                    <div class="admin-card" style="width: 100%;">
+                        <h3 id="adminListTitle" style="margin-bottom: 20px;">Usuarios del Sistema</h3>
+                        <div class="users-list" id="adminUsersList">
+                            <!-- Lista de usuarios se carga dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal para crear evento -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Crear Nuevo Evento</h3>
+                <button class="modal-close" id="closeEventModal">&times;</button>
+            </div>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label for="eventTitle">Título del evento</label>
+                    <input type="text" id="eventTitle" required placeholder="Ej: Introducción a React">
+                </div>
+                <div class="form-group">
+                    <label for="eventDescription">Descripción</label>
+                    <textarea id="eventDescription" required rows="3"
+                        placeholder="Describe el tema del evento..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="eventDate">Fecha y hora</label>
+                        <input type="datetime-local" id="eventDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="eventMax">Participantes máx.</label>
+                        <input type="number" id="eventMax" required min="2" max="100" value="20">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="eventCategory">Categoría</label>
+                    <select id="eventCategory" required>
+                        <option value="logica">Lógica de Programación</option>
+                        <option value="lenguajes">Lenguajes</option>
+                        <option value="databases">Bases de Datos</option>
+                        <option value="libros">Libros</option>
+                        <option value="general">General</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-save">Crear Evento</button>
+                    <button type="button" class="btn-cancel" id="cancelEvent">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para ver contenido detallado -->
+    <div class="modal" id="contentModal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="contentModalTitle">Contenido</h3>
+                <button class="modal-close" id="closeContentModal">&times;</button>
+            </div>
+            <div class="modal-body" id="contentModalBody">
+                <!-- Contenido dinámico -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../JS/supabase-client.js"></script>
+    <script src="../JS/auth.js"></script>
+    <script src="../JS/dashboard.js"></script>
+</body>
+
+</html>

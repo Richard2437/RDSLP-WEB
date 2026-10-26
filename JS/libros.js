@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         let dbLibros = [];
         try {
-            const res = await fetch('http://localhost:3000/api/libros');
+            const res = await fetch('/api/libros');
             const data = await res.json();
             if (data.success) {
                 dbLibros = data.libros.map(b => ({
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if(!titulo) return alert('El título es obligatorio');
 
         try {
-            const res = await fetch('http://localhost:3000/api/libros', {
+            const res = await fetch('/api/libros', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ titulo, autor, descripcion, url, usuario_id: currentUser.id })

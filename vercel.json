@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/Static/dashboard.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/Static/$1"
+    }
+  ]
+}

@@ -157,7 +157,7 @@
         if (document.getElementById('rdslpLegalModal')) return;
 
         const modalMarkup = `
-            <div class="legal-modal-backdrop" id="rdslpLegalModal" aria-hidden="true" role="dialog">
+            <div class="legal-modal-backdrop" id="rdslpLegalModal" aria-hidden="true" role="dialog" style="display: none;">
                 <div class="legal-modal-container">
                     <header class="legal-modal-header">
                         <div class="legal-modal-title-wrap">
@@ -186,6 +186,7 @@
 
         const closeModal = () => {
             modal.classList.remove('active');
+            modal.style.display = 'none';
             modal.setAttribute('aria-hidden', 'true');
             document.body.classList.remove('legal-modal-open');
         };
@@ -226,6 +227,7 @@
             body.innerHTML = TERMS_TEXT;
         }
 
+        modal.style.display = 'flex';
         modal.classList.add('active');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('legal-modal-open');

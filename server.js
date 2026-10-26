@@ -45,6 +45,9 @@ app.get('/', (req, res) => {
     res.redirect('/Static/login.html');
 });
 
+// Endpoint de configuración para Supabase
+app.get('/api/config', require('./api/config'));
+
 // Health check para que el frontend sepa si el server está activo
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', database: 'Supabase', timestamp: new Date().toISOString() });

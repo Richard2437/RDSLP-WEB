@@ -240,7 +240,7 @@
             let archivos = [];
 
             try {
-                const res = await fetch(`http://localhost:3000/api/archivos/${lenguajeId}`);
+                const res = await fetch(`/api/archivos/${lenguajeId}`);
                 const data = await res.json();
                 if (data.success && Array.isArray(data.archivos)) {
                     archivos = data.archivos;
@@ -347,7 +347,7 @@
             };
 
             try {
-                await fetch('http://localhost:3000/api/archivos', {
+                await fetch('/api/archivos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(nuevoAporte)

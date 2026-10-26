@@ -1,14 +1,77 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=Static/login.html">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RDSLP - Red Social de Lenguajes de Programación</title>
-    <script>
-        window.location.href = "Static/login.html";
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="JS/supabase-client.js"></script>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .text {
+            color: #a0a0a0;
+            font-size: 14px;
+        }
+    </style>
 </head>
-<body style="background-color: #0f172a; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-    <p>Redirigiendo a <a href="Static/login.html" style="color: #6366f1;">RDSLP</a>...</p>
+
+<body>
+    <div class="loader"></div>
+    <div class="brand">RDSLP</div>
+    <p class="text">Cargando aplicación...</p>
+
+    <script>
+        async function routeUser() {
+            try {
+                // Verificar si hay usuario activo en Supabase
+                const user = await window.rdslpSupabase.getCurrentUser();
+                if (user && !user.isBanned) {
+                    window.location.replace('Static/dashboard.html');
+                    return;
+                }
+            } catch (err) {
+                console.warn('[RDSLP] Redirección inicial:', err.message);
+            }
+            window.location.replace('Static/login.html');
+        }
+
+        document.addEventListener('DOMContentLoaded', routeUser);
+    </script>
 </body>
+
 </html>
