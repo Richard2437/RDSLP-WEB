@@ -22,12 +22,12 @@ app.use('/JS', express.static(path.join(__dirname, 'JS')));
 app.use('/Styles', express.static(path.join(__dirname, 'Styles')));
 
 // Lenguajes
-app.use('/LanguagesSection', express.static(path.join(__dirname, 'LanguagesSection')));
+app.use('/LanguagesSection', express.static(path.join(__dirname, 'LanguagesSection'), staticOptions));
 app.use('/LanguagesSection_css', express.static(path.join(__dirname, 'LanguagesSection_css')));
 app.use('/LanguagesSection_js', express.static(path.join(__dirname, 'LanguagesSection_js')));
 
 // Bases de Datos
-app.use('/DatabasesSection', express.static(path.join(__dirname, 'DatabasesSection')));
+app.use('/DatabasesSection', express.static(path.join(__dirname, 'DatabasesSection'), staticOptions));
 app.use('/DatabasesSection_css', express.static(path.join(__dirname, 'DatabasesSection_css')));
 app.use('/DatabasesSection_js', express.static(path.join(__dirname, 'DatabasesSection_js')));
 
