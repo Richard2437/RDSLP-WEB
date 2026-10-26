@@ -15,8 +15,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir archivos estáticos principales
-app.use('/Static', express.static(path.join(__dirname, 'Static')));
+// Servir archivos estáticos principales con soporte para URLs sin extensión .html
+const staticOptions = { extensions: ['html', 'htm'] };
+app.use('/Static', express.static(path.join(__dirname, 'Static'), staticOptions));
 app.use('/JS', express.static(path.join(__dirname, 'JS')));
 app.use('/Styles', express.static(path.join(__dirname, 'Styles')));
 
@@ -40,10 +41,12 @@ app.use('/api/libros', require('./api/libros'));
 app.use('/api/archivos', require('./api/archivos'));
 app.use('/api/databases', require('./api/databases'));
 
-// Ruta raíz redirige al login
-app.get('/', (req, res) => {
-    res.redirect('/Static/login.html');
-});
+// Ruta raíz y rutas directas amigables
+app.get('/', (req, res) => res.redirect('/Static/login.html'));
+app.get('/login', (req, res) => res.redirect('/Static/login.html'));
+app.get('/dashboard', (req, res) => res.redirect('/Static/dashboard.html'));
+app.get('/sesion', (req, res) => res.redirect('/Static/sesion.html'));
+app.get('/registro', (req, res) => res.redirect('/Static/sesion.html'));
 
 // Endpoint de configuración para Supabase
 app.get('/api/config', require('./api/config'));
