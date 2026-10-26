@@ -25,7 +25,7 @@
     { "source": "/Static/comunidad", "destination": "/Static/comunidad.html" },
     { "source": "/Static/ejercicios", "destination": "/Static/ejercicios.html" },
     { "source": "/Static/libros", "destination": "/Static/libros.html" },
-    { "source": "/Static/logica", "destination": "/Static/loglogic.html" },
+    { "source": "/Static/logica", "destination": "/Static/logica.html" },
     { "source": "/Static/perfil", "destination": "/Static/perfil.html" },
     { "source": "/Static/databases", "destination": "/DatabasesSection/databases.html" },
     { "source": "/dashboard", "destination": "/Static/dashboard.html" },
@@ -38,7 +38,12 @@
     { "source": "/comunidad", "destination": "/Static/comunidad.html" },
     { "source": "/ejercicios", "destination": "/Static/ejercicios.html" },
     { "source": "/libros", "destination": "/Static/libros.html" },
-    { "source": ":/logica", "destination": "/Static/logica.html" },
+    { "source": "/logica", "destination": "/Static/logica.html" },
     { "source": "/perfil", "destination": "/Static/perfil.html" }
-  ]
+  ],
+  "functions": {
+    "api/*.php": {
+      "runtime": "php@8.2"
+    }
+  }
 }
