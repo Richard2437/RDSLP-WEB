@@ -1,4 +1,4 @@
-/* =====================================================
+// server.js deprecated – the application now runs on PHP router (index.php).
    RDSLP - Servidor Express Principal
    Red Social de Lenguajes de Programación
 ===================================================== */
