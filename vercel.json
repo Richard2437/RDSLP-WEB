@@ -15,10 +15,5 @@
   ],
   "redirects": [
     { "source": "/", "destination": "/Static/login.html", "permanent": false }
-  ],
-  "functions": {
-    "api/*.php": {
-      "runtime": "vercel-php@0.7.1"
-    }
-  }
+  ]
 }
