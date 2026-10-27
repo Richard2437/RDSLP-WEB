@@ -287,8 +287,15 @@
             catch { return {}; }
         })();
 
-        // Prioridad de rol: Perfil de Supabase > Stored actual > user_metadata > 'user'
-        const finalRole = profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user';
+        // Preservar rol admin/moderador si ya fue asignado
+        const isPrivileged = (stored.email === user.email && (stored.role === 'admin' || stored.role === 'moderator')) ||
+                             (profile?.rol === 'admin' || profile?.rol === 'moderator') ||
+                             (user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'moderator');
+
+        const finalRole = isPrivileged
+            ? (profile?.rol === 'admin' ? 'admin' : (stored.role || profile?.rol || user.user_metadata?.role || 'admin'))
+            : (profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user');
+
         const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
 
         const userData = {
@@ -302,7 +309,7 @@
             loginTime: new Date().toISOString()
         };
 
-        syncUserSession(user, profile);
+        syncUserSession(user, { ...profile, rol: finalRole });
         return userData;
     }
 
@@ -312,7 +319,14 @@
             catch { return {}; }
         })();
 
-        const finalRole = profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user';
+        const isPrivileged = (stored.email === user.email && (stored.role === 'admin' || stored.role === 'moderator')) ||
+                             (profile?.rol === 'admin' || profile?.rol === 'moderator') ||
+                             (user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'moderator');
+
+        const finalRole = isPrivileged
+            ? (profile?.rol === 'admin' ? 'admin' : (stored.role || profile?.rol || user.user_metadata?.role || 'admin'))
+            : (profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user');
+
         const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
 
         const userData = {

@@ -76,6 +76,7 @@
             </ul>
         </nav>
         <div class="sidebar-footer">
+            <div class="user-role-badge" id="userRoleBadge">Usuario</div>
             <button class="logout-btn" id="logoutBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -183,9 +184,182 @@
         </div>
     </main>
 
+    <!-- Modal de Perfil de Usuario (Estilo Facebook) -->
+    <div class="modal" id="userProfileModal">
+        <div class="modal-content modal-large profile-modal-content">
+            <div class="modal-header profile-modal-header">
+                <div class="profile-modal-cover">
+                    <div class="profile-modal-avatar" id="modalUserAvatar">U</div>
+                </div>
+                <button class="modal-close" id="closeProfileModal">&times;</button>
+            </div>
+            <div class="profile-modal-body">
+                <div class="profile-hero-meta">
+                    <div class="profile-hero-titles">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h2 id="modalUserName">Usuario Demo</h2>
+                            <span class="user-role-badge" id="modalUserBadge">Usuario</span>
+                        </div>
+                        <p class="profile-handle" id="modalUserHandle">@usuario</p>
+                    </div>
+                    <div class="profile-social-actions" id="modalSocialActions">
+                        <!-- Botón Seguir / Chat inyectado dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="profile-stats-bar">
+                    <div class="p-stat"><strong id="modalStatFollowers">0</strong><span>Seguidores</span></div>
+                    <div class="p-stat"><strong id="modalStatFollowing">0</strong><span>Siguiendo</span></div>
+                    <div class="p-stat"><strong id="modalStatPosts">0</strong><span>Publicaciones</span></div>
+                    <div class="p-stat" id="modalStatMutualWrap" style="display: none;"><strong style="color: #10b981;">Amigos Mutuos</strong><span>✓ Se siguen</span></div>
+                </div>
+
+                <!-- Pestañas del Perfil -->
+                <div class="profile-modal-tabs">
+                    <button type="button" class="p-tab active" data-tab="posts">Publicaciones</button>
+                    <button type="button" class="p-tab" data-tab="about">Acerca de</button>
+                    <button type="button" class="p-tab admin-mod-tab" id="modalAdminTab" style="display: none;">🛡️ Moderación (Admin)</button>
+                </div>
+
+                <!-- Contenido de Pestañas -->
+                <div class="p-tab-content active" id="tabPostsContent">
+                    <div class="user-posts-list" id="modalUserPostsList">
+                        <!-- Posts del usuario -->
+                    </div>
+                </div>
+
+                <div class="p-tab-content" id="tabAboutContent" style="display: none;">
+                    <div class="about-card">
+                        <h4>Biografía</h4>
+                        <p id="modalUserBio" style="color: var(--text-secondary); margin-bottom: 16px;">Sin biografía disponible.</p>
+                        <h4>Intereses y Tecnologías</h4>
+                        <div class="tech-tags-list" id="modalUserTags">
+                            <span class="tech-tag">JavaScript</span>
+                            <span class="tech-tag">Python</span>
+                            <span class="tech-tag">Bases de Datos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Moderación Exclusivo para Admin / Moderador -->
+                <div class="p-tab-content" id="tabAdminContent" style="display: none;">
+                    <div class="admin-mod-panel">
+                        <div class="mod-alert-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            <div>
+                                <strong>Herramientas Oficiales de Moderación</strong>
+                                <p>Aplica sanciones, avisos o suspensiones a este perfil según las normas de la comunidad.</p>
+                            </div>
+                        </div>
+
+                        <div class="mod-section">
+                            <h4>⚠️ Emitir Aviso Oficial de la Comunidad (Strike)</h4>
+                            <p class="mod-desc">El usuario recibirá una notificación obligatoria sobre infracción de normas en su cuenta.</p>
+                            <div class="mod-form-row">
+                                <select id="warnReasonSelect" class="mod-input">
+                                    <option value="Lenguaje ofensivo o inapropiado">Lenguaje ofensivo o inapropiado</option>
+                                    <option value="Spam o publicidad no permitida">Spam o contenido no deseado</option>
+                                    <option value="Acoso o comportamiento hostil">Acoso o comportamiento hostil</option>
+                                    <option value="Código malicioso o desinformación">Código malicioso o desinformación</option>
+                                    <option value="Infracción reiterada de normas">Infracción reiterada de normas</option>
+                                </select>
+                                <input type="text" id="warnNoteInput" class="mod-input" placeholder="Nota explicativa o mensaje al usuario...">
+                                <button type="button" class="btn-mod-action btn-warn" id="btnIssueWarning">Enviar Aviso</button>
+                            </div>
+                        </div>
+
+                        <div class="mod-section">
+                            <h4>🔇 Silenciar de Chat y Comentarios</h4>
+                            <p class="mod-desc">Impide que el usuario publique en el muro o envíe mensajes durante un período.</p>
+                            <div class="mod-buttons-row">
+                                <button type="button" class="btn-mod-action btn-mute" onclick="window.applyMute(1)">Silenciar 1 Día</button>
+                                <button type="button" class="btn-mod-action btn-mute" onclick="window.applyMute(3)">Silenciar 3 Días</button>
+                                <button type="button" class="btn-mod-action btn-mute" onclick="window.applyMute(7)">Silenciar 7 Días</button>
+                                <button type="button" class="btn-mod-action btn-mute-perm" onclick="window.applyMute(0)">Silenciar Permanente</button>
+                            </div>
+                        </div>
+
+                        <div class="mod-section">
+                            <h4>⛔ Suspensión / Baneo de Cuenta</h4>
+                            <p class="mod-desc">Bloquea temporal o permanentemente el acceso del usuario a la plataforma.</p>
+                            <div class="mod-buttons-row">
+                                <button type="button" class="btn-mod-action btn-ban-temp" onclick="window.applyBan(1)">Baneo 24h</button>
+                                <button type="button" class="btn-mod-action btn-ban-temp" onclick="window.applyBan(3)">Baneo 3 Días</button>
+                                <button type="button" class="btn-mod-action btn-ban-temp" onclick="window.applyBan(7)">Baneo 7 Días</button>
+                                <button type="button" class="btn-mod-action btn-ban-perm" onclick="window.applyBan(0)">Baneo Permanente</button>
+                                <button type="button" class="btn-mod-action btn-lift" onclick="window.liftSanction()">✅ Levantar Sanciones</button>
+                            </div>
+                        </div>
+
+                        <div class="mod-history-section">
+                            <h4>Historial de Sanciones y Avisos Activos</h4>
+                            <div id="modalSanctionsHistory" class="mod-history-list">
+                                <p style="color: var(--text-muted); font-size: 13px;">Sin sanciones registradas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Chat Privado (Solo Amigos Mutuos) -->
+    <div class="modal" id="directChatModal">
+        <div class="modal-content direct-chat-card">
+            <div class="modal-header chat-modal-header">
+                <div class="chat-header-user">
+                    <div class="chat-avatar" id="chatTargetAvatar">U</div>
+                    <div>
+                        <h4 id="chatTargetName">Usuario</h4>
+                        <span class="chat-status-indicator">● Amigos Mutuos (Chat Privado)</span>
+                    </div>
+                </div>
+                <button class="modal-close" id="closeChatModal">&times;</button>
+            </div>
+            <div class="direct-chat-messages" id="directChatMessages">
+                <!-- Mensajes inyectados dinámicamente -->
+            </div>
+            <form class="direct-chat-input-bar" id="directChatForm">
+                <input type="text" id="directChatMessageInput" placeholder="Escribe un mensaje privado..." required autocomplete="off">
+                <button type="submit" class="btn-send-chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Reporte de Publicación -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>🚩 Reportar Publicación</h3>
+                <button class="modal-close" id="closeReportModal">&times;</button>
+            </div>
+            <form id="reportForm" style="padding: 20px;">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">Indica la razón por la que consideras que este contenido no es adecuado:</p>
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <select id="reportReason" required style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                        <option value="Contenido ofensivo o de odio">Lenguaje ofensivo o incitación al odio</option>
+                        <option value="Acoso o amenazas">Acoso o intimidación</option>
+                        <option value="Spam o publicidad no deseada">Spam o fraude</option>
+                        <option value="Código malicioso o peligroso">Código malicioso / vulnerabilidad</option>
+                        <option value="Otro">Otro motivo</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <textarea id="reportDetails" placeholder="Detalles adicionales (opcional)..." rows="3" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); resize: vertical;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-cancel" id="cancelReport">Cancelar</button>
+                    <button type="submit" class="btn-save" style="background: #ef4444;">Enviar Reporte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="../JS/supabase-client.js"></script>
     <script src="../JS/auth.js"></script>
+    <script src="../JS/social-moderation.js"></script>
     <script src="../JS/muro.js"></script>
 </body>
-
 </html>

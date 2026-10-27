@@ -59,6 +59,8 @@ class AuthManager {
         this.getCurrentUser();
         this.syncCurrentUser();
 
+        const updateAll = () => this.updateGlobalAdminUI();
+
         window.addEventListener('rdslp_user_updated', (e) => {
             if (e.detail) {
                 this.currentUser = e.detail;
@@ -66,11 +68,24 @@ class AuthManager {
             }
         });
 
+        window.addEventListener('userSynced', (e) => {
+            if (e.detail) {
+                this.currentUser = e.detail;
+                this.updateGlobalAdminUI();
+            }
+        });
+
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.updateGlobalAdminUI());
+            document.addEventListener('DOMContentLoaded', updateAll);
         } else {
-            this.updateGlobalAdminUI();
+            updateAll();
         }
+
+        window.addEventListener('load', updateAll);
+        // Reintentos automáticos rápidos para garantizar renderizado visual instantáneo
+        setTimeout(updateAll, 100);
+        setTimeout(updateAll, 500);
+        setTimeout(updateAll, 1500);
     }
 
     async syncCurrentUser() {
@@ -92,9 +107,47 @@ class AuthManager {
 
     updateGlobalAdminUI() {
         const user = this.getCurrentUser();
-        const isAdmin = user && (user.role === 'admin');
+        
+        // Determinar rol con máxima prioridad al rol admin si existe guardado
+        let role = 'user';
+        if (user && user.role) {
+            role = user.role;
+        } else {
+            try {
+                const stored = JSON.parse(localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user') || '{}');
+                if (stored.role) role = stored.role;
+            } catch (e) {}
+        }
+
+        const isAdmin = (role === 'admin');
+
+        // 1. Mostrar/ocultar elementos de administrador en el menú
         document.querySelectorAll('.admin-only, #adminNavItem, [data-admin-only]').forEach(el => {
             el.style.display = isAdmin ? 'block' : 'none';
+        });
+
+        // 2. Crear o actualizar el badge de rol en la barra lateral (.sidebar-footer)
+        const roleNames = {
+            'admin': 'ADMINISTRADOR',
+            'moderator': 'MODERADOR',
+            'user': 'USUARIO'
+        };
+        const roleText = roleNames[role] || 'USUARIO';
+
+        const footers = document.querySelectorAll('.sidebar-footer');
+        footers.forEach(footer => {
+            let badge = footer.querySelector('#userRoleBadge, .user-role-badge');
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.id = 'userRoleBadge';
+                badge.className = 'user-role-badge ' + role;
+                badge.textContent = roleText;
+                footer.insertBefore(badge, footer.firstChild);
+            } else {
+                badge.textContent = roleText;
+                badge.className = 'user-role-badge ' + role;
+                badge.style.display = 'inline-block';
+            }
         });
     }
 
