@@ -1,10 +1,14 @@
 -- =====================================================
--- RDSLP - Script SQL para Supabase (Producción)
+-- RDSLP - Script SQL Completo para Supabase (Producción)
 -- Ejecuta este script en el SQL Editor de tu Dashboard de Supabase
--- https://supabase.com/dashboard/project/ewgmnqhsucmzjhgvqleg/sql
+-- https://supabase.com/dashboard/project/TU_PROJECT_ID/sql
+-- =====================================================
+-- Este script es IDEMPOTENTE: se puede ejecutar varias veces sin error.
 -- =====================================================
 
--- 1. Crear tabla de perfiles sincronizada con auth.users
+-- =====================================================
+-- 1. TABLA: perfiles (sincronizada con auth.users)
+-- =====================================================
 CREATE TABLE IF NOT EXISTS public.perfiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     nombre TEXT NOT NULL DEFAULT 'Usuario',
@@ -13,33 +17,115 @@ CREATE TABLE IF NOT EXISTS public.perfiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. Habilitar Row Level Security (RLS)
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
 
--- 3. Políticas de acceso (RLS)
--- Permitir lectura pública a todos (para perfiles públicos, muro y listado admin)
-DROP POLICY IF EXISTS "Permitir lectura publica de perfiles" ON public.perfiles;
-CREATE POLICY "Permitir lectura publica de perfiles"
-ON public.perfiles FOR SELECT
-TO anon, authenticated
-USING (true);
+DROP POLICY IF EXISTS "perfiles_select_public" ON public.perfiles;
+CREATE POLICY "perfiles_select_public" ON public.perfiles
+    FOR SELECT TO anon, authenticated USING (true);
 
--- Permitir inserción al registrarse o por trigger
-DROP POLICY IF EXISTS "Permitir insercion de perfil propio" ON public.perfiles;
-CREATE POLICY "Permitir insercion de perfil propio"
-ON public.perfiles FOR INSERT
-TO anon, authenticated
-WITH CHECK (true);
+DROP POLICY IF EXISTS "perfiles_insert_public" ON public.perfiles;
+CREATE POLICY "perfiles_insert_public" ON public.perfiles
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
 
--- Permitir actualización completa de perfiles (incluyendo roles) sin bloqueos
-DROP POLICY IF EXISTS "Permitir actualizacion de perfiles" ON public.perfiles;
-CREATE POLICY "Permitir actualizacion de perfiles"
-ON public.perfiles FOR UPDATE
-TO anon, authenticated
-USING (true)
-WITH CHECK (true);
+DROP POLICY IF EXISTS "perfiles_update_public" ON public.perfiles;
+CREATE POLICY "perfiles_update_public" ON public.perfiles
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 
--- 4. Trigger automático para sincronizar nuevos usuarios (Email o Google)
+DROP POLICY IF EXISTS "perfiles_delete_authenticated" ON public.perfiles;
+CREATE POLICY "perfiles_delete_authenticated" ON public.perfiles
+    FOR DELETE TO authenticated USING (true);
+
+-- =====================================================
+-- 2. TABLA: posts (publicaciones del muro)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.posts (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    author_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    author_name TEXT DEFAULT 'Anónimo',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "posts_select_public" ON public.posts;
+CREATE POLICY "posts_select_public" ON public.posts
+    FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "posts_insert_public" ON public.posts;
+CREATE POLICY "posts_insert_public" ON public.posts
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "posts_update_public" ON public.posts;
+CREATE POLICY "posts_update_public" ON public.posts
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "posts_delete_authenticated" ON public.posts;
+CREATE POLICY "posts_delete_authenticated" ON public.posts
+    FOR DELETE TO authenticated USING (true);
+
+-- =====================================================
+-- 3. TABLA: comments (comentarios en publicaciones)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.comments (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    post_id BIGINT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    author TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "comments_select_public" ON public.comments;
+CREATE POLICY "comments_select_public" ON public.comments
+    FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "comments_insert_public" ON public.comments;
+CREATE POLICY "comments_insert_public" ON public.comments
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "comments_update_public" ON public.comments;
+CREATE POLICY "comments_update_public" ON public.comments
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "comments_delete_authenticated" ON public.comments;
+CREATE POLICY "comments_delete_authenticated" ON public.comments
+    FOR DELETE TO authenticated USING (true);
+
+-- =====================================================
+-- 4. TABLA: likes (likes en publicaciones)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.likes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    post_id BIGINT NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(post_id, user_id)
+);
+
+ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "likes_select_public" ON public.likes;
+CREATE POLICY "likes_select_public" ON public.likes
+    FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "likes_insert_public" ON public.likes;
+CREATE POLICY "likes_insert_public" ON public.likes
+    FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "likes_update_public" ON public.likes;
+CREATE POLICY "likes_update_public" ON public.likes
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "likes_delete_authenticated" ON public.likes;
+CREATE POLICY "likes_delete_authenticated" ON public.likes
+    FOR DELETE TO authenticated USING (true);
+
+-- =====================================================
+-- 5. TRIGGER: Sincronizar auth.users → perfiles
+-- =====================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -49,7 +135,11 @@ BEGIN
         COALESCE(
             NEW.raw_user_meta_data->>'name',
             NEW.raw_user_meta_data->>'full_name',
-            CONCAT(COALESCE(NEW.raw_user_meta_data->>'first_name', ''), ' ', COALESCE(NEW.raw_user_meta_data->>'last_name', '')),
+            CONCAT(
+                COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+                ' ',
+                COALESCE(NEW.raw_user_meta_data->>'last_name', '')
+            ),
             SPLIT_PART(NEW.email, '@', 1)
         ),
         NEW.email,
@@ -59,7 +149,6 @@ BEGIN
     SET 
         nombre = EXCLUDED.nombre,
         correo = EXCLUDED.correo,
-        -- Si en metadata viene un rol nuevo, actualizarlo; si no, mantener el que ya tenía
         rol = COALESCE(NULLIF(EXCLUDED.rol, 'user'), public.perfiles.rol, 'user');
     RETURN NEW;
 END;
@@ -70,8 +159,10 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT OR UPDATE ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 5. Función SQL para asignar o cambiar rol fácilmente desde Supabase SQL Editor
--- USO: SELECT public.asignar_rol('tu_correo@gmail.com', 'admin');
+-- =====================================================
+-- 6. FUNCIÓN: Asignar/cambiar roles desde SQL Editor
+-- USO: SELECT public.asignar_rol('correo@ejemplo.com', 'admin');
+-- =====================================================
 CREATE OR REPLACE FUNCTION public.asignar_rol(correo_usuario TEXT, nuevo_rol TEXT)
 RETURNS TEXT AS $$
 DECLARE
@@ -81,25 +172,32 @@ BEGIN
         RAISE EXCEPTION 'El rol debe ser: user, moderator, admin o banned';
     END IF;
 
-    -- Actualizar en la tabla perfiles
     UPDATE public.perfiles
     SET rol = nuevo_rol
     WHERE LOWER(correo) = LOWER(correo_usuario);
     
     GET DIAGNOSTICS v_count = ROW_COUNT;
 
-    -- Sincronizar en auth.users si existe
     UPDATE auth.users
-    SET raw_user_meta_data = jsonb_set(COALESCE(raw_user_meta_data, '{}'::jsonb), '{role}', to_jsonb(nuevo_rol))
+    SET raw_user_meta_data = jsonb_set(
+        COALESCE(raw_user_meta_data, '{}'::jsonb),
+        '{role}',
+        to_jsonb(nuevo_rol)
+    )
     WHERE LOWER(email) = LOWER(correo_usuario);
 
     IF v_count = 0 THEN
-        RETURN 'Aviso: No se encontró ningún perfil con el correo ' || correo_usuario;
+        RETURN '⚠️ No se encontró ningún perfil con el correo: ' || correo_usuario;
     END IF;
 
     RETURN '✅ Rol "' || nuevo_rol || '" asignado exitosamente a: ' || correo_usuario;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 6. Consulta de verificación
-SELECT 'Tabla perfiles, RLS de roles y función asignar_rol configurados con éxito' AS resultado;
+-- =====================================================
+-- 7. VERIFICACIÓN FINAL
+-- =====================================================
+SELECT 
+    '✅ Base de datos RDSLP configurada exitosamente' AS resultado,
+    (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('perfiles','posts','comments','likes')) AS tablas_creadas,
+    '4 tablas esperadas: perfiles, posts, comments, likes' AS detalle;

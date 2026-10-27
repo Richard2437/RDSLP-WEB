@@ -5,10 +5,11 @@
 ===================================================== */
 
 (function () {
-    // Configuración por defecto segura (fallback si /api/config no responde)
+    // Configuración segura: las credenciales se obtienen del endpoint /api/config
+    // que lee las variables de entorno del servidor. NO se hardcodean aquí.
     const DEFAULT_CONFIG = {
-        supabaseUrl: 'https://ewgmnqhsucmzjhgvqleg.supabase.co',
-        supabaseAnonKey: 'sb_publishable__5CVGdsxC2OTqYwX--7K6g_tlmB8WFY'
+        supabaseUrl: null,
+        supabaseAnonKey: null
     };
 
     let clientInstance = null;
@@ -45,7 +46,7 @@
         }
 
         try {
-            const res = await fetch('/api/config', { signal: AbortSignal.timeout(3000) });
+            const res = await fetch('/api/config', { signal: AbortSignal.timeout(5000) });
             if (res.ok) {
                 const data = await res.json();
                 if (data.supabaseUrl && data.supabaseAnonKey) {
@@ -53,10 +54,18 @@
                 }
             }
         } catch (err) {
-            console.warn('[RDSLP] /api/config no disponible, usando configuración configurada.');
+            console.warn('[RDSLP] /api/config no disponible:', err.message);
         }
 
-        return DEFAULT_CONFIG;
+        // Si DEFAULT_CONFIG tiene valores (desarrollo local), usarlos
+        if (DEFAULT_CONFIG.supabaseUrl && DEFAULT_CONFIG.supabaseAnonKey) {
+            return DEFAULT_CONFIG;
+        }
+
+        throw new Error(
+            '[RDSLP] No se pudieron obtener las credenciales de Supabase. ' +
+            'Verifica que las variables de entorno SUPABASE_URL y SUPABASE_ANON_KEY estén configuradas en Vercel.'
+        );
     }
 
     // Inicializar cliente

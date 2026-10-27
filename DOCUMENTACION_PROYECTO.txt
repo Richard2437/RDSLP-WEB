@@ -10,122 +10,179 @@ de programación. Permite a los usuarios registrarse, iniciar sesión, explorar
 contenido de lógica, lenguajes, bases de datos y libros, además de interactuar
 en un muro comunitario y participar en eventos.
 
+La aplicación utiliza Supabase como Backend-as-a-Service (BaaS) para la
+autenticación, base de datos PostgreSQL y Row Level Security (RLS).
+
 2. PÁGINAS DEL SITIO
 --------------------
-  - login.html        → Inicio de sesión
-  - sesion.html        → Registro de nuevos usuarios
+  - login.html        → Inicio de sesión (email/contraseña + Google OAuth)
+  - sesion.html        → Registro de nuevos usuarios con consentimiento legal
   - dashboard.html     → Panel principal (inicio, contenido, admin)
-  - muro.html          → Muro de publicaciones
-  - ejercicios.html    → Ejercicios de programación
+  - muro.html          → Muro de publicaciones con likes y comentarios
+  - ejercicios.html    → Editor de ejercicios con ejecución de código en vivo
   - logica.html        → Contenido de lógica de programación
   - libros.html        → Biblioteca de libros recomendados
-  - comunidad.html     → Eventos y comunidad
+  - comunidad.html     → Salas y comunidades (públicas/privadas)
   - perfil.html        → Perfil del usuario
   - databases.html     → Sección de bases de datos
 
 3. ARCHIVOS JAVASCRIPT PRINCIPALES
 -----------------------------------
-  - JS/auth.js         → Autenticación, registro, login, roles, ban/unban, salas y eventos
+  - JS/supabase-client.js → Cliente oficial de Supabase para producción
+                            (Auth, Google OAuth, perfiles en la nube)
+  - JS/auth.js         → Autenticación, registro, login, roles, ban/unban
   - JS/dashboard.js    → Lógica del dashboard y panel de administración
   - JS/login.js        → Lógica del formulario de login
   - JS/sesion.js       → Lógica de registro y validación de Habeas Data
-  - JS/legal.js        → Módulo legal de Términos de Servicio y Habeas Data (Ley 1581)
-  - JS/comunidad.js    → Gestión de salas públicas y privadas con código de invitación
-  - JS/api-client.js   → Cliente API para conexión con backend
+  - JS/legal.js        → Módulo legal de Términos de Servicio y Habeas Data
+  - JS/comunidad.js    → Gestión de salas públicas y privadas
+  - JS/ejercicios.js   → Editor de código con ejecución en sandbox
+  - JS/muro.js         → Publicaciones y comentarios
+  - JS/api-client.js   → Cliente API para conexión con backend serverless
 
-4. ROLES DE USUARIO
+4. FUNCIONES SERVERLESS (api/)
+-------------------------------
+  - api/config.js      → Expone variables de entorno públicas (Supabase URL
+                          y Anon Key) de forma segura sin hardcodear en el frontend
+  - api/auth.js        → Autenticación backend con JWT firmado
+  - api/posts.js       → CRUD de publicaciones del muro
+  - api/comments.js    → CRUD de comentarios
+  - api/likes.js       → Sistema de likes
+
+5. ROLES DE USUARIO
 -------------------
   - admin      → Acceso total: gestionar usuarios, banear, cambiar roles
   - moderator  → Permisos intermedios de moderación
   - user       → Usuario estándar con permisos básicos
+  - banned     → Cuenta suspendida: sin acceso a la plataforma
 
-5. ESTRUCTURA DE DATOS DE USUARIO (localStorage: rdslp_all_users)
------------------------------------------------------------------
+  Para asignar roles desde Supabase SQL Editor:
+    SELECT public.asignar_rol('correo@ejemplo.com', 'admin');
+
+6. ESTRUCTURA DE DATOS EN SUPABASE
+------------------------------------
+  Tabla: public.perfiles (sincronizada con auth.users vía trigger)
   {
-    id:                 número único (timestamp),
-    email:              correo electrónico,
-    password:           contraseña,
-    name:               nombre completo,
-    role:               "user" | "moderator" | "admin",
-    avatar:             iniciales (ej: "JP"),
-    bio:                biografía del usuario,
-    isBanned:           false | true,
-    habeasDataAccepted: true,
-    termsAccepted:      true,
-    legalConsentDate:   fecha ISO de aceptación de términos y Habeas Data,
-    createdAt:          fecha ISO de creación
+    id:          UUID (referencia a auth.users.id),
+    nombre:      TEXT (nombre completo del usuario),
+    correo:      TEXT (correo electrónico),
+    rol:         TEXT ('user' | 'moderator' | 'admin' | 'banned'),
+    created_at:  TIMESTAMP WITH TIME ZONE
   }
 
-6. PRIVACIDAD DE COMUNIDADES Y SALAS (MODELO FACEBOOK / WHATSAPP)
------------------------------------------------------------------
+  Políticas RLS:
+  - Lectura pública para todos (anon + authenticated)
+  - Inserción permitida para registros
+  - Actualización permitida (roles gestionados desde funciones SECURITY DEFINER)
+
+7. PRIVACIDAD DE COMUNIDADES Y SALAS
+--------------------------------------
   a) Decisión de Privacidad por el Creador:
-     - Tal como en los Grupos de Facebook o Comunidades de WhatsApp, la persona que
-       crea la comunidad o sala es su Administrador y decide la privacidad:
-       * 🟢 PÚBLICO / ABIERTO: Cualquier usuario registrado de la plataforma puede
-         descubrir la sala, ver su temática, inscribirse libremente y chatear.
-       * 🔒 PRIVADO (CON INVITACIÓN): La sala está protegida con un código alfanumérico
-         único generado por el sistema (ej: RDSLP-ABC12) o personalizado por el creador.
-     - Solo los usuarios que ingresen el código correcto obtienen permiso de acceso.
-  b) Gestión y Ajustes de la Sala (Exclusivo Creador / Admin):
-     - El creador tiene el botón "⚙️ Ajustes" en la tarjeta de su sala para:
-       * Cambiar la privacidad en cualquier momento (de Público a Privado o viceversa).
-       * Regenerar el código de invitación con un solo clic si fue filtrado.
-       * Modificar el nombre y descripción de la sala.
-     - Botón "🔑 Ver Invitación" para copiar el código al portapapeles y compartirlo
-       directamente por WhatsApp, Discord o correo.
-  c) Permisos Estrictos en Chat en Tiempo Real:
-     - Verificación automática de autorización en cada sala: si un usuario intenta
-       enviar o leer mensajes en una sala privada sin haberse unido válidamente con el
-       código, el sistema bloquea la acción notificando acceso denegado.
+     - 🟢 PÚBLICO / ABIERTO: Cualquier usuario registrado puede descubrir la
+       sala, inscribirse libremente y chatear.
+     - 🔒 PRIVADO (CON INVITACIÓN): Protegida con código alfanumérico único
+       (ej: RDSLP-ABC12). Solo acceden quienes ingresen el código correcto.
+  b) Gestión de la Sala (Exclusivo Creador / Admin):
+     - Cambiar privacidad en cualquier momento
+     - Regenerar código de invitación con un clic
+     - Modificar nombre y descripción
+     - Compartir código por WhatsApp, Discord o correo
+  c) Permisos Estrictos:
+     - Verificación automática de autorización en cada sala
+     - Bloqueo de acceso no autorizado a salas privadas
 
-7. CUMPLIMIENTO LEGAL Y HABEAS DATA (LEY 1581 DE 2012 / GDPR)
--------------------------------------------------------------
+8. CUMPLIMIENTO LEGAL Y HABEAS DATA (LEY 1581 DE 2012)
+-------------------------------------------------------
   a) Política de Tratamiento de Datos Personales (Habeas Data):
-     - Módulo legal interactivo (JS/legal.js) con el documento legal completo.
-     - Declaración de responsable, finalidades legítimas (educativas y comunitarias),
-       derechos ARCO (Acceso, Rectificación, Cancelación, Oposición) y canal de contacto.
-     - Compromiso expreso: RDSLP NO vende ni cede datos a terceros con fines comerciales.
+     - Módulo legal interactivo (JS/legal.js)
+     - Derechos ARCO (Acceso, Rectificación, Cancelación, Oposición)
+     - RDSLP NO vende ni cede datos a terceros con fines comerciales
   b) Términos y Condiciones de Servicio:
-     - Reglas de convivencia comunitaria, prohibición de código malicioso o conductas de acoso.
-     - Licenciamiento de código compartido para propósitos de aprendizaje colaborativo.
-  c) Consentimiento Informado en Login y Registro:
-     - login.html: Aviso legal con enlaces para leer Términos y Habeas Data.
-     - sesion.html: Checkbox explícito y obligatorio de aceptación sin el cual no se
-       permite la creación de la cuenta, guardando la fecha ISO del consentimiento.
+     - Reglas de convivencia, prohibición de código malicioso
+     - Licenciamiento de código compartido para aprendizaje colaborativo
+  c) Consentimiento Informado:
+     - login.html: Aviso legal con enlaces a Términos y Habeas Data
+     - sesion.html: Checkbox obligatorio con fecha ISO de aceptación
 
-8. MEDIDAS DE SEGURIDAD GENERALES
----------------------------------
-  a) Verificación de permisos antes de acciones admin (canManageUsers, canManageEvents)
-  b) Los admins NO pueden ser baneados por otros admins
-  c) Sesión del usuario almacenada separada (rdslp_user) de la lista completa
-  d) Evento personalizado "userListUpdated" se dispara tras cada cambio
-     (registro, ban, unban) para sincronizar la interfaz del admin en tiempo real
-  e) Validación de formularios en el lado del cliente y servidor
-  f) Contraseñas almacenadas en localStorage (SOLO DEMO - en producción usar
-     hash bcrypt en servidor)
+9. SEGURIDAD (DevSecOps)
+-------------------------
+  a) Gestión de Secretos:
+     - Variables de entorno (.env) NUNCA se suben al repositorio (.gitignore)
+     - Credenciales de Supabase se inyectan vía /api/config (endpoint serverless)
+     - NO hay credenciales hardcodeadas en el código fuente del frontend
+     - Las variables sensibles se configuran en el panel de Vercel
+  b) Separación Cliente / Servidor:
+     - Las claves públicas (Supabase URL y Anon Key) se sirven desde /api/config
+     - Los secretos (JWT_SECRET) solo se usan en funciones serverless (api/)
+  c) Row Level Security (RLS):
+     - Todas las tablas de Supabase tienen RLS habilitado
+     - Políticas de acceso por rol y autenticación
+  d) Protección de la Base de Datos:
+     - Las operaciones de cambio de rol usan funciones SECURITY DEFINER
+     - Trigger automático sincroniza auth.users con la tabla perfiles
+  e) Validaciones:
+     - Validación de inputs en cliente y servidor
+     - CORS configurado en funciones serverless
+     - JWT firmado con secreto del lado del servidor
+  f) .gitignore DevSecOps:
+     - Excluye: .env, .env.*, certificados (*.pem, *.key, *.cert),
+       archivos de IDE, archivos de base de datos local, logs
 
-9. PANEL DE ADMINISTRACIÓN
---------------------------
-  - Muestra estadísticas: total usuarios, comentarios, eventos
-  - Pestañas: "Usuarios Activos" y "Usuarios Baneados"
-  - Acciones por usuario: cambiar rol (select), banear/desbanear (botón)
-  - Se actualiza automáticamente al registrar nuevos usuarios
+10. CONFIGURACIÓN DE GOOGLE OAUTH
+-----------------------------------
+  Para habilitar el login con Google:
 
-10. TECNOLOGÍAS UTILIZADAS
+  1. En Google Cloud Console (https://console.cloud.google.com):
+     - Crear proyecto → APIs & Services → Credentials
+     - Crear OAuth 2.0 Client ID (tipo: Web Application)
+     - Agregar redirect URI:
+       https://TU_PROJECT_ID.supabase.co/auth/v1/callback
+     - Copiar Client ID y Client Secret
+
+  2. En el Dashboard de Supabase:
+     - Authentication → Providers → Google
+     - Habilitar el toggle de Google
+     - Pegar Client ID y Client Secret
+     - Guardar
+
+  Si NO se configura, aparecerá el error:
+    {"code":400,"error_code":"validation_failed",
+     "msg":"Unsupported provider: provider is not enabled"}
+
+11. TECNOLOGÍAS UTILIZADAS
 ---------------------------
-  - HTML5, CSS3, JavaScript (vanilla)
+  - HTML5, CSS3, JavaScript (Vanilla)
   - Google Fonts (Inter)
-  - Bootstrap 5.3 (integrado vía CDN)
-  - Node.js + Express (servidor backend)
-  - MySQL (base de datos rdslp_database.sql)
+  - Bootstrap 5.3 (CDN)
+  - Supabase (Auth, Database PostgreSQL, RLS)
+  - Vercel (Hosting + Serverless Functions)
 
-11. CÓMO EJECUTAR
+12. VARIABLES DE ENTORNO REQUERIDAS
+-------------------------------------
+  Configurar en Vercel → Settings → Environment Variables:
+
+  | Variable           | Descripción                           |
+  |---------------------|---------------------------------------|
+  | SUPABASE_URL        | URL del proyecto Supabase             |
+  | SUPABASE_ANON_KEY   | Clave pública (anon key) de Supabase  |
+  | JWT_SECRET          | Secreto para firmar tokens JWT        |
+
+  Para desarrollo local, crear archivo .env basado en .env.example
+
+13. CÓMO EJECUTAR
 ------------------
-  1. npm install
-  2. npm start
-  3. Abrir http://localhost:3000 en el navegador
-  4. Modo estático / GitHub Pages: Abrir index.html o desplegar en GitHub Pages.
+  Desarrollo local:
+    1. Copiar .env.example a .env y completar credenciales
+    2. npm install (solo si necesitas dependencias adicionales)
+    3. Abrir index.html directamente en el navegador
+       o usar un servidor local (ej: npx serve .)
+
+  Producción (Vercel):
+    1. Conectar repositorio en Vercel
+    2. Configurar variables de entorno en Vercel
+    3. Desplegar automáticamente
 
 ================================================================================
-                          Generado automáticamente
+                    Documentación generada - RDSLP 2026
+                    Proyecto ABP Final - DevSecOps Ready
 ================================================================================
