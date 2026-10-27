@@ -1990,4 +1990,29 @@ body {
     .admin-stats {
         grid-template-columns: 1fr;
     }
+
+    .admin-stats-overview {
+        flex-direction: column;
+    }
+}
+
+/* =====================================================
+   Admin Panel - Comunidades y Lista Completa de Usuarios
+===================================================== */
+.admin-tab {
+    transition: all 0.2s ease;
+    border-radius: 6px 6px 0 0;
+}
+
+.admin-tab:hover {
+    color: var(--text-primary) !important;
+}
+
+.user-item:hover,
+.community-admin-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.community-admin-item {
+    transition: background 0.2s ease;
 }

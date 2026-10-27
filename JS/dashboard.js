@@ -45,6 +45,23 @@ document.addEventListener('DOMContentLoaded', function () {
         loadContent();
         updateProfileSection();
         setupRoleBasedUI();
+
+        // Escuchar actualización de usuario en vivo
+        const handleUserUpdate = (e) => {
+            currentUser = e.detail || auth.getCurrentUser();
+            loadUserData();
+            setupRoleBasedUI();
+        };
+        window.addEventListener('userSynced', handleUserUpdate);
+        window.addEventListener('rdslp_user_updated', handleUserUpdate);
+
+        // Revisar si la URL trae hash (ej: dashboard.html#admin)
+        const checkHash = () => {
+            const h = window.location.hash.replace('#', '');
+            if (h) navigateTo(h);
+        };
+        checkHash();
+        window.addEventListener('hashchange', checkHash);
     }
 
     // Verificar autenticación
@@ -129,7 +146,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // Logout
-        logoutBtn.addEventListener('click', logout);
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                if (window.rdslpSupabase) {
+                    window.rdslpSupabase.signOut();
+                } else if (auth) {
+                    auth.logout();
+                } else {
+                    localStorage.removeItem('rdslp_user');
+                    sessionStorage.removeItem('rdslp_user');
+                    window.location.href = 'login.html';
+                }
+            });
+        }
 
         // Settings form
         if (settingsForm) {
@@ -924,17 +953,18 @@ db.usuarios.<span class="function">updateOne</span>(
             });
         });
 
-        // Initial render
-        await renderUserList('active-users');
+        // Initial render: Todos los usuarios registrados por defecto
+        await renderUserList('all-users');
     }
 
-    async function renderUserList(filter) {
+    async function renderUserList(filter = 'all-users') {
         const usersList = document.getElementById('adminUsersList');
         const listTitle = document.getElementById('adminListTitle');
+        const listCount = document.getElementById('adminListCount');
 
         if (!usersList) return;
 
-        usersList.innerHTML = '<div style="padding: 20px; color: var(--text-secondary); text-align: center;"><div class="loader-small" style="display: inline-block; margin-right: 8px;"></div> Cargando usuarios desde Supabase...</div>';
+        usersList.innerHTML = '<div style="padding: 20px; color: var(--text-secondary); text-align: center;"><div class="loader-small" style="display: inline-block; margin-right: 8px;"></div> Cargando datos del sistema...</div>';
 
         let allUsers = [];
         try {
@@ -949,31 +979,99 @@ db.usuarios.<span class="function">updateOne</span>(
             return;
         }
 
-        // Actualizar contador
+        // Obtener comunidades creadas
+        let allCommunities = [];
+        try {
+            if (typeof community !== 'undefined' && community.getEvents) {
+                allCommunities = community.getEvents() || [];
+            } else {
+                allCommunities = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+            }
+        } catch (e) {
+            allCommunities = [];
+        }
+
+        // Actualizar contadores del resumen
         const totalUsersEl = document.getElementById('totalUsers');
         if (totalUsersEl) totalUsersEl.textContent = allUsers.length;
+
+        const totalCommunitiesEl = document.getElementById('totalCommunities');
+        if (totalCommunitiesEl) totalCommunitiesEl.textContent = allCommunities.length;
 
         const totalCommentsEl = document.getElementById('totalComments');
         if (totalCommentsEl && typeof content !== 'undefined') {
             totalCommentsEl.textContent = content.getComments ? content.getComments().length : 0;
         }
 
-        const totalEventsEl = document.getElementById('totalEvents');
-        if (totalEventsEl && typeof community !== 'undefined') {
-            totalEventsEl.textContent = community.getEvents ? community.getEvents().length : 0;
+        const bannedCount = allUsers.filter(u => u.isBanned || u.role === 'banned').length;
+        const totalBannedEl = document.getElementById('totalBanned');
+        if (totalBannedEl) totalBannedEl.textContent = bannedCount;
+
+        // ── Pestaña: Comunidades Creadas ─────────────────────────────────
+        if (filter === 'created-communities') {
+            listTitle.textContent = 'Comunidades y Salas Creadas';
+            if (listCount) listCount.textContent = `${allCommunities.length} en total`;
+
+            if (allCommunities.length === 0) {
+                usersList.innerHTML = '<p style="color: var(--text-muted); padding: 35px; text-align: center;">No hay ninguna comunidad o sala creada aún.</p>';
+                return;
+            }
+
+            usersList.innerHTML = allCommunities.map(c => {
+                const isPrivate = c.accessType === 'private';
+                const accessBadge = isPrivate
+                    ? `<span style="padding: 4px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">🔒 Privada ${c.inviteCode ? `(${escapeHtml(c.inviteCode)})` : ''}</span>`
+                    : `<span style="padding: 4px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">🟢 Pública</span>`;
+
+                const categoryBadge = `<span style="padding: 4px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600; background: rgba(99, 102, 241, 0.15); color: #818cf8; text-transform: uppercase;">${escapeHtml(c.category || 'general')}</span>`;
+
+                const participantsCount = c.participants?.length || 0;
+                const dateStr = c.date ? new Date(c.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Sin fecha';
+
+                return `
+                    <div class="community-admin-item" style="display: flex; align-items: center; justify-content: space-between; padding: 18px; border-bottom: 1px solid var(--border-color); gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                                <strong style="font-size: 15px; color: var(--text-primary);">${escapeHtml(c.title)}</strong>
+                                ${accessBadge}
+                                ${categoryBadge}
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 8px 0; line-height: 1.4;">${escapeHtml(c.description || 'Sin descripción')}</p>
+                            <div style="display: flex; gap: 15px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap;">
+                                <span>👤 Creador: <strong style="color: var(--text-secondary);">${escapeHtml(c.organizerName || c.organizer || 'Anónimo')}</strong></span>
+                                <span>👥 Miembros: <strong style="color: var(--text-secondary);">${participantsCount} / ${c.maxParticipants || 20}</strong></span>
+                                <span>📅 Fecha: ${dateStr}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <a href="comunidad.html" style="padding: 8px 14px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: #818cf8; text-decoration: none; font-size: 13px; font-weight: 500; border: 1px solid rgba(99, 102, 241, 0.3);">Ver en Comunidad</a>
+                            <button onclick="deleteCommunityAdmin('${c.id}')" style="padding: 8px 14px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-size: 13px; font-weight: 500;">Eliminar</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            return;
         }
 
+        // ── Pestañas de Usuarios: all-users, active-users, banned-users ───
         let usersToRender = [];
         if (filter === 'active-users') {
             usersToRender = allUsers.filter(u => !u.isBanned && u.role !== 'banned');
-            listTitle.textContent = 'Usuarios Activos (' + usersToRender.length + ')';
-        } else {
+            listTitle.textContent = 'Usuarios Activos';
+            if (listCount) listCount.textContent = `${usersToRender.length} de ${allUsers.length} usuarios`;
+        } else if (filter === 'banned-users') {
             usersToRender = allUsers.filter(u => u.isBanned || u.role === 'banned');
-            listTitle.textContent = 'Usuarios Baneados (' + usersToRender.length + ')';
+            listTitle.textContent = 'Usuarios Baneados';
+            if (listCount) listCount.textContent = `${usersToRender.length} usuarios baneados`;
+        } else {
+            // all-users (Por defecto: muestra a todos)
+            usersToRender = allUsers;
+            listTitle.textContent = 'Usuarios Registrados (Todos)';
+            if (listCount) listCount.textContent = `${allUsers.length} usuarios en total`;
         }
 
         if (usersToRender.length === 0) {
-            usersList.innerHTML = '<p style="color: var(--text-muted); padding: 25px; text-align: center;">No hay usuarios en esta lista.</p>';
+            usersList.innerHTML = '<p style="color: var(--text-muted); padding: 30px; text-align: center;">No hay usuarios en esta categoría.</p>';
             return;
         }
 
@@ -982,42 +1080,60 @@ db.usuarios.<span class="function">updateOne</span>(
             const isAdmin = u.role === 'admin';
             const isBanned = u.isBanned || u.role === 'banned';
 
+            // Badge de Estado (Activo / Baneado)
+            const statusBadge = isBanned
+                ? `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-right: 8px;">🚫 Baneado</span>`
+                : `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); margin-right: 8px;">🟢 Activo</span>`;
+
+            // Badge de Rol
+            let roleBadge = '';
+            if (u.role === 'admin') {
+                roleBadge = `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); margin-right: 8px;">Administrador</span>`;
+            } else if (u.role === 'moderator') {
+                roleBadge = `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); margin-right: 8px;">Moderador</span>`;
+            } else {
+                roleBadge = `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); margin-right: 8px;">Usuario</span>`;
+            }
+
             // Select de roles
             let roleSelect = '';
             if (!isSelf && !isBanned) {
                 roleSelect = `
-                    <select onchange="changeUserRole('${u.id}', this.value)" class="role-select" style="padding: 6px 10px; border-radius: 6px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); margin-right: 10px; cursor: pointer;">
+                    <select onchange="changeUserRole('${u.id}', this.value)" class="role-select" style="padding: 6px 10px; border-radius: 6px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); margin-right: 10px; cursor: pointer; font-size: 13px;">
                         <option value="user" ${u.role === 'user' ? 'selected' : ''}>Usuario</option>
                         <option value="moderator" ${u.role === 'moderator' ? 'selected' : ''}>Moderador</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador</option>
                     </select>
                 `;
-            } else {
-                roleSelect = `<span class="user-role-badge ${u.role}" style="margin-right: 10px; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: rgba(99,102,241,0.15); color: #818cf8;">${u.role}</span>`;
             }
 
             // Botón de ban / desbanear
             let banBtn = '';
             if (!isSelf && !isAdmin) {
                 if (isBanned) {
-                    banBtn = `<button onclick="toggleBanUser('${u.id}', false)" style="padding: 6px 14px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); cursor: pointer; font-weight: 500;">Desbanear</button>`;
+                    banBtn = `<button onclick="toggleBanUser('${u.id}', false)" style="padding: 6px 14px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); cursor: pointer; font-weight: 500; font-size: 13px;">Desbanear</button>`;
                 } else {
-                    banBtn = `<button onclick="toggleBanUser('${u.id}', true)" style="padding: 6px 14px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-weight: 500;">Banear</button>`;
+                    banBtn = `<button onclick="toggleBanUser('${u.id}', true)" style="padding: 6px 14px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-weight: 500; font-size: 13px;">Banear</button>`;
                 }
             }
 
             const initial = (u.name ? u.name.charAt(0) : 'U').toUpperCase();
 
             return `
-                <div class="user-item" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
-                    <div class="user-info" style="display: flex; align-items: center; gap: 15px;">
-                        <div class="user-avatar-small" style="width: 42px; height: 42px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">${initial}</div>
+                <div class="user-item" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border-color); transition: background 0.2s; flex-wrap: wrap; gap: 12px;">
+                    <div class="user-info" style="display: flex; align-items: center; gap: 14px; min-width: 240px;">
+                        <div class="user-avatar-small" style="width: 42px; height: 42px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; flex-shrink: 0;">${initial}</div>
                         <div>
-                            <div class="user-name" style="font-weight: 600; color: var(--text-primary);">${escapeHtml(u.name)} ${isSelf ? '<span style="color: #818cf8; font-size: 12px;">(Tú)</span>' : ''}</div>
-                            <div class="user-email" style="font-size: 13px; color: var(--text-secondary);">${escapeHtml(u.email)}</div>
+                            <div class="user-name" style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                <span>${escapeHtml(u.name)}</span>
+                                ${isSelf ? '<span style="color: #818cf8; font-size: 11.5px; font-weight: normal;">(Tú)</span>' : ''}
+                            </div>
+                            <div class="user-email" style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(u.email)}</div>
                         </div>
                     </div>
-                    <div class="user-actions" style="display: flex; align-items: center;">
+                    <div class="user-actions" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                        ${statusBadge}
+                        ${roleBadge}
                         ${roleSelect}
                         ${banBtn}
                     </div>
@@ -1026,7 +1142,7 @@ db.usuarios.<span class="function">updateOne</span>(
         }).join('');
     }
 
-    // Funciones globales para admin conectadas con Supabase
+    // Funciones globales para admin conectadas con Supabase y Comunidades
     window.changeUserRole = async function (userId, newRole) {
         if (!currentUser || currentUser.role !== 'admin') return;
 
@@ -1038,15 +1154,15 @@ db.usuarios.<span class="function">updateOne</span>(
                     auth.changeUserRole(userId, newRole);
                 }
                 const activeTab = document.querySelector('.admin-tab.active');
-                await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+                await renderUserList(activeTab ? activeTab.dataset.tab : 'all-users');
             } catch (err) {
                 alert('Error al actualizar rol en Supabase: ' + err.message);
                 const activeTab = document.querySelector('.admin-tab.active');
-                await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+                await renderUserList(activeTab ? activeTab.dataset.tab : 'all-users');
             }
         } else {
             const activeTab = document.querySelector('.admin-tab.active');
-            await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+            await renderUserList(activeTab ? activeTab.dataset.tab : 'all-users');
         }
     };
 
@@ -1062,9 +1178,27 @@ db.usuarios.<span class="function">updateOne</span>(
                     if (ban) auth.banUser(userId); else auth.unbanUser(userId);
                 }
                 const activeTab = document.querySelector('.admin-tab.active');
-                await renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+                await renderUserList(activeTab ? activeTab.dataset.tab : 'all-users');
             } catch (err) {
                 alert(`Error al ${action} usuario en Supabase: ` + err.message);
+            }
+        }
+    };
+
+    window.deleteCommunityAdmin = function (eventId) {
+        if (!currentUser || currentUser.role !== 'admin') return;
+        if (confirm('¿Estás seguro de eliminar esta comunidad / sala como administrador?')) {
+            try {
+                if (typeof community !== 'undefined' && community.deleteEvent) {
+                    community.deleteEvent(Number(eventId) || eventId, currentUser.id);
+                } else {
+                    let events = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+                    events = events.filter(e => String(e.id) !== String(eventId));
+                    localStorage.setItem('rdslp_events', JSON.stringify(events));
+                }
+                renderUserList('created-communities');
+            } catch (err) {
+                alert('Error al eliminar comunidad: ' + err.message);
             }
         }
     };

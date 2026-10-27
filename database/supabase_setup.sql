@@ -33,7 +33,7 @@ CREATE POLICY "perfiles_update_public" ON public.perfiles
 
 DROP POLICY IF EXISTS "perfiles_delete_authenticated" ON public.perfiles;
 CREATE POLICY "perfiles_delete_authenticated" ON public.perfiles
-    FOR DELETE TO authenticated USING (true);
+    FOR DELETE TO anon, authenticated USING (true);
 
 -- =====================================================
 -- 2. TABLA: posts (publicaciones del muro)
@@ -63,7 +63,7 @@ CREATE POLICY "posts_update_public" ON public.posts
 
 DROP POLICY IF EXISTS "posts_delete_authenticated" ON public.posts;
 CREATE POLICY "posts_delete_authenticated" ON public.posts
-    FOR DELETE TO authenticated USING (true);
+    FOR DELETE TO anon, authenticated USING (true);
 
 -- =====================================================
 -- 3. TABLA: comments (comentarios en publicaciones)
@@ -92,7 +92,7 @@ CREATE POLICY "comments_update_public" ON public.comments
 
 DROP POLICY IF EXISTS "comments_delete_authenticated" ON public.comments;
 CREATE POLICY "comments_delete_authenticated" ON public.comments
-    FOR DELETE TO authenticated USING (true);
+    FOR DELETE TO anon, authenticated USING (true);
 
 -- =====================================================
 -- 4. TABLA: likes (likes en publicaciones)
@@ -121,7 +121,7 @@ CREATE POLICY "likes_update_public" ON public.likes
 
 DROP POLICY IF EXISTS "likes_delete_authenticated" ON public.likes;
 CREATE POLICY "likes_delete_authenticated" ON public.likes
-    FOR DELETE TO authenticated USING (true);
+    FOR DELETE TO anon, authenticated USING (true);
 
 -- =====================================================
 -- 5. TRIGGER: Sincronizar auth.users → perfiles

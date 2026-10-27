@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -12,7 +12,6 @@
 </head>
 
 <body>
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -460,42 +459,61 @@
                     <p>Gestiona usuarios y contenido del sistema</p>
                 </div>
 
-                <div class="admin-stats-overview" style="display: flex; gap: 20px; margin-bottom: 30px;">
-                    <div class="stat-card" style="flex: 1;">
+                <div class="admin-stats-overview" style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+                    <div class="stat-card" style="flex: 1; min-width: 180px;">
                         <div class="stat-info">
                             <h3 id="totalUsers">0</h3>
-                            <p>Usuarios Totales</p>
+                            <p>Usuarios Registrados (Todos)</p>
                         </div>
                     </div>
-                    <div class="stat-card" style="flex: 1;">
+                    <div class="stat-card" style="flex: 1; min-width: 180px;">
+                        <div class="stat-info">
+                            <h3 id="totalCommunities">0</h3>
+                            <p>Comunidades Creadas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="flex: 1; min-width: 180px;">
                         <div class="stat-info">
                             <h3 id="totalComments">0</h3>
                             <p>Comentarios</p>
                         </div>
                     </div>
-                    <div class="stat-card" style="flex: 1;">
+                    <div class="stat-card" style="flex: 1; min-width: 180px;">
                         <div class="stat-info">
-                            <h3 id="totalEvents">0</h3>
-                            <p>Eventos</p>
+                            <h3 id="totalBanned">0</h3>
+                            <p>Usuarios Baneados</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="admin-tabs-container"
-                    style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 20px;">
-                    <button class="admin-tab active" data-tab="active-users"
-                        style="background: none; border: none; padding: 10px 0; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--accent-primary); font-weight: 600;">Usuarios
-                        Activos</button>
+                    style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="admin-tab active" data-tab="all-users"
+                        style="background: none; border: none; padding: 10px 14px; color: var(--text-primary); cursor: pointer; border-bottom: 2px solid var(--accent-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                        <span>👥 Todos los Registrados</span>
+                    </button>
+                    <button class="admin-tab" data-tab="active-users"
+                        style="background: none; border: none; padding: 10px 14px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                        <span>🟢 Activos</span>
+                    </button>
                     <button class="admin-tab" data-tab="banned-users"
-                        style="background: none; border: none; padding: 10px 0; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;">Usuarios
-                        Baneados</button>
+                        style="background: none; border: none; padding: 10px 14px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                        <span>🚫 Baneados</span>
+                    </button>
+                    <button class="admin-tab" data-tab="created-communities"
+                        style="background: none; border: none; padding: 10px 14px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                        <span>🌐 Comunidades Creadas</span>
+                    </button>
                 </div>
 
                 <div class="admin-content">
                     <div class="admin-card" style="width: 100%;">
-                        <h3 id="adminListTitle" style="margin-bottom: 20px;">Usuarios del Sistema</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h3 id="adminListTitle" style="margin: 0;">Usuarios Registrados</h3>
+                            <span id="adminListCount" style="font-size: 13px; color: var(--text-muted);"></span>
+                        </div>
                         <div class="users-list" id="adminUsersList">
-                            <!-- Lista de usuarios se carga dinámicamente -->
+                            <!-- Lista de usuarios o comunidades se carga dinámicamente -->
                         </div>
                     </div>
                 </div>

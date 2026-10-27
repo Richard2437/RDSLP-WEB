@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo">
@@ -58,8 +57,6 @@
             </div>
         </div>
     </main>
-
-    <!-- Modal para ver código de aportes -->
     <div class="modal" id="contentModal">
         <div class="modal-content modal-large">
             <div class="modal-header">
@@ -71,25 +68,43 @@
     </div>
 
     <script src="../JS/auth.js"></script>
-    <script>
-        // Leer el ID de la base de datos personalizada de la URL
-        (function() {
-            const params = new URLSearchParams(window.location.search);
-            const dbId = params.get('id') || params.get('custom') || '';
-            const container = document.getElementById('dynamicContent');
-            if (container && dbId) {
-                container.setAttribute('data-db', dbId);
-                // Intentar leer el nombre desde localStorage
-                try {
-                    const stored = JSON.parse(localStorage.getItem('rdslp_dbdetail_' + dbId) || '{}');
-                    const dbName = stored.name || dbId.replace('db-', '');
-                    container.setAttribute('data-name', dbName);
-                    document.getElementById('pageTitleCustom').textContent = dbName;
-                    document.title = dbName + ' | RDSLP';
-                } catch(e) {}
-            }
-        })();
-    </script>
     <script src="../DatabasesSection_js/detalle_database_base.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const params = new URLSearchParams(window.location.search);
+            const dbId = params.get('id') || params.get('custom') || 'db-custom';
+            
+            // Obtener datos dinámicos desde parámetros URL sin depender de localStorage
+            const rawName = params.get('name') || dbId.replace('db-', '').replace(/-/g, ' ');
+            const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+            const rawType = params.get('type') || params.get('category') || 'Base de Datos';
+            const rawTagline = params.get('tagline') || `Tecnología y motor de base de datos ${formattedName} en RDSLP`;
+            const rawDesc = params.get('desc') || params.get('description') || `Documentación, casos de uso, esquemas y recursos comunitarios para ${formattedName}.`;
+
+            document.getElementById('pageTitleCustom').textContent = formattedName;
+            document.title = formattedName + ' | RDSLP';
+
+            const config = {
+                id: dbId,
+                name: formattedName,
+                abbr: (params.get('abbr') || formattedName).substring(0, 2).toUpperCase(),
+                type: rawType,
+                color: params.get('color') || '#6366f1',
+                tagline: rawTagline,
+                description: rawDesc,
+                features: [
+                    'Soporte para consultas y modelado de datos',
+                    'Almacenamiento y descarga de scripts y recursos',
+                    'Comentarios técnicos y valoraciones comunitarias'
+                ],
+                tags: [rawType, 'Base de Datos', formattedName],
+                code: `-- Ejemplo de consulta para ${formattedName}\nSELECT * FROM ${formattedName.toLowerCase().replace(/\\s+/g, '_')} LIMIT 10;`
+            };
+
+            if (window.DatabaseDetailManager) {
+                window.DatabaseDetailManager.init(config);
+            }
+        });
+    </script>
 </body>
 </html>

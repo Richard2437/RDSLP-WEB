@@ -56,7 +56,21 @@ class AuthManager {
     }
 
     init() {
+        this.getCurrentUser();
         this.syncCurrentUser();
+
+        window.addEventListener('rdslp_user_updated', (e) => {
+            if (e.detail) {
+                this.currentUser = e.detail;
+                this.updateGlobalAdminUI();
+            }
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.updateGlobalAdminUI());
+        } else {
+            this.updateGlobalAdminUI();
+        }
     }
 
     async syncCurrentUser() {
@@ -67,11 +81,21 @@ class AuthManager {
                     this.currentUser = user;
                     localStorage.setItem('rdslp_user', JSON.stringify(user));
                     sessionStorage.setItem('rdslp_user', JSON.stringify(user));
+                    this.updateGlobalAdminUI();
+                    window.dispatchEvent(new CustomEvent('userSynced', { detail: user }));
                 }
             } catch (err) {
                 console.warn('[RDSLP] Sincronización de usuario Supabase:', err.message);
             }
         }
+    }
+
+    updateGlobalAdminUI() {
+        const user = this.getCurrentUser();
+        const isAdmin = user && (user.role === 'admin');
+        document.querySelectorAll('.admin-only, #adminNavItem, [data-admin-only]').forEach(el => {
+            el.style.display = isAdmin ? 'block' : 'none';
+        });
     }
 
     // Obtener todos los usuarios (desde Supabase si está disponible)
@@ -118,9 +142,13 @@ class AuthManager {
                     email: userData.email,
                     password: userData.password,
                     firstName: userData.firstName,
-                    lastName: userData.lastName
+                    lastName: userData.lastName,
+                    role: userData.role || 'user'
                 });
-                return { success: true, user: data.user };
+                if (data.autoLoggedIn) {
+                    this.currentUser = await window.rdslpSupabase.getCurrentUser();
+                }
+                return { success: true, ...data };
             } catch (err) {
                 return { success: false, message: err.message || 'Error al registrar' };
             }
@@ -242,7 +270,8 @@ class AuthManager {
             localStorage.removeItem('rdslp_user');
             sessionStorage.removeItem('rdslp_user');
             this.currentUser = null;
-            window.location.href = 'login.html';
+            const inSubfolder = window.location.pathname.includes('/LanguagesSection') || window.location.pathname.includes('/DatabasesSection');
+            window.location.href = inSubfolder ? '../Static/login.html' : 'login.html';
         }
     }
 }

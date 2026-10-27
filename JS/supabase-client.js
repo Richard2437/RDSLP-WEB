@@ -111,13 +111,17 @@
         });
 
         if (error) {
-            if (error.message?.toLowerCase().includes('email not confirmed')) {
-                throw new Error('Por favor confirma tu correo electrónico antes de ingresar o solicita al administrador la activación.');
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('email not confirmed')) {
+                throw new Error('Debes confirmar tu correo electrónico antes de ingresar. Revisa tu bandeja de entrada o desactiva "Confirm email" en Supabase (Authentication > Providers > Email).');
             }
-            if (error.message?.toLowerCase().includes('invalid login credentials')) {
+            if (msg.includes('invalid login credentials')) {
                 throw new Error('Correo electrónico o contraseña incorrectos.');
             }
-            throw error;
+            if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+                throw new Error('Demasiados intentos. Por favor espera un momento antes de volver a intentar.');
+            }
+            throw new Error(error.message || 'Error al iniciar sesión.');
         }
 
         // Verificar si el usuario está baneado en perfiles
@@ -134,11 +138,18 @@
         return data;
     }
 
-    // Registro de nuevo usuario (permite rol: user, moderator, admin)
+    // Registro de nuevo usuario (por defecto: 'user')
     async function signUpWithEmail({ email, password, firstName, lastName, role = 'user' }) {
         const client = await getClient();
         const fullName = `${firstName.trim()} ${lastName.trim()}`;
         const userRole = (role && ['user', 'moderator', 'admin'].includes(role)) ? role : 'user';
+
+        // Limpiar cualquier sesión anterior que estuviera abierta
+        try {
+            await client.auth.signOut();
+        } catch (_) {}
+        localStorage.removeItem('rdslp_user');
+        sessionStorage.removeItem('rdslp_user');
 
         const { data, error } = await client.auth.signUp({
             email: email.trim(),
@@ -153,7 +164,24 @@
             }
         });
 
-        if (error) throw error;
+        if (error) {
+            const msg = error.message || '';
+            if (msg.includes('already registered') || msg.includes('User already registered')) {
+                throw new Error('Este correo electrónico ya se encuentra registrado. Intenta iniciar sesión.');
+            }
+            if (msg.includes('Password should be at least')) {
+                throw new Error('La contraseña debe tener al menos 6 caracteres.');
+            }
+            if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+                throw new Error('Límite de correos alcanzado. En tu Dashboard de Supabase desactiva "Confirm email" en Authentication > Providers > Email.');
+            }
+            throw new Error(msg);
+        }
+
+        // Si data.user existe pero data.user.identities está vacío, el usuario ya existía en Supabase
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+            throw new Error('Este correo electrónico ya está registrado. Por favor inicia sesión directamente.');
+        }
 
         // Registrar o actualizar en la tabla perfiles
         if (data.user) {
@@ -169,7 +197,40 @@
             }
         }
 
-        return data;
+        // Si Supabase devolvió sesión activa (confirmación de email desactivada)
+        if (data.user && data.session) {
+            syncUserSession(data.user, { nombre: fullName, correo: email.trim(), rol: userRole });
+            return {
+                ...data,
+                autoLoggedIn: true,
+                user: data.user
+            };
+        }
+
+        // Si la sesión vino null, intentar signInWithPassword por si el proyecto lo permite
+        try {
+            const loginRes = await client.auth.signInWithPassword({
+                email: email.trim(),
+                password: password
+            });
+            if (loginRes.data?.session && loginRes.data?.user) {
+                syncUserSession(loginRes.data.user, { nombre: fullName, correo: email.trim(), rol: userRole });
+                return {
+                    ...loginRes.data,
+                    autoLoggedIn: true,
+                    user: loginRes.data.user
+                };
+            }
+        } catch (loginErr) {
+            // Requiere confirmación por correo
+        }
+
+        return {
+            ...data,
+            autoLoggedIn: false,
+            requiresEmailConfirmation: true,
+            email: email.trim()
+        };
     }
 
     // Iniciar sesión con Google OAuth
@@ -204,7 +265,8 @@
         } finally {
             sessionStorage.removeItem('rdslp_user');
             localStorage.removeItem('rdslp_user');
-            window.location.href = 'login.html';
+            const inSubfolder = window.location.pathname.includes('/LanguagesSection') || window.location.pathname.includes('/DatabasesSection');
+            window.location.href = inSubfolder ? '../Static/login.html' : 'login.html';
         }
     }
 
@@ -220,14 +282,23 @@
         const user = session.user;
         const profile = await getProfile(user.id, user.email);
 
+        const stored = (() => {
+            try { return JSON.parse(localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user') || '{}'); }
+            catch { return {}; }
+        })();
+
+        // Prioridad de rol: Perfil de Supabase > Stored actual > user_metadata > 'user'
+        const finalRole = profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user';
+        const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
+
         const userData = {
             id: user.id,
             email: user.email,
-            name: profile?.nombre || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0],
-            role: profile?.rol || user.user_metadata?.role || 'user',
+            name: finalName,
+            role: finalRole,
             avatar: profile?.avatar || (user.user_metadata?.first_name ? user.user_metadata.first_name.charAt(0) : user.email.charAt(0).toUpperCase()),
             bio: profile?.bio || '',
-            isBanned: profile?.rol === 'banned',
+            isBanned: finalRole === 'banned',
             loginTime: new Date().toISOString()
         };
 
@@ -236,18 +307,27 @@
     }
 
     function syncUserSession(user, profile) {
-        const name = profile?.nombre || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
-        const role = profile?.rol || user.user_metadata?.role || 'user';
+        const stored = (() => {
+            try { return JSON.parse(localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user') || '{}'); }
+            catch { return {}; }
+        })();
+
+        const finalRole = profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user';
+        const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
+
         const userData = {
             id: user.id,
             email: user.email,
-            name: name,
-            role: role,
-            avatar: name.substring(0, 2).toUpperCase(),
+            name: finalName,
+            role: finalRole,
+            avatar: finalName.substring(0, 2).toUpperCase(),
             loginTime: new Date().toISOString()
         };
         sessionStorage.setItem('rdslp_user', JSON.stringify(userData));
         localStorage.setItem('rdslp_user', JSON.stringify(userData));
+
+        // Notificar a toda la ventana para actualizar roles y permisos inmediatamente
+        window.dispatchEvent(new CustomEvent('rdslp_user_updated', { detail: userData }));
     }
 
     // =====================================================
@@ -257,20 +337,22 @@
     async function getProfile(userId, email) {
         try {
             const client = await getClient();
-            const { data, error } = await client
-                .from('perfiles')
-                .select('*')
-                .eq('id', userId)
-                .maybeSingle();
+            if (userId) {
+                const { data, error } = await client
+                    .from('perfiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .maybeSingle();
 
-            if (!error && data) return data;
+                if (!error && data) return data;
+            }
 
-            // Si no se encuentra por ID, intentar buscar por correo
+            // Si no se encuentra por ID, intentar buscar por correo (case-insensitive)
             if (email) {
                 const { data: byEmail, error: errEmail } = await client
                     .from('perfiles')
                     .select('*')
-                    .eq('correo', email)
+                    .ilike('correo', email.trim())
                     .maybeSingle();
                 if (!errEmail && byEmail) return byEmail;
             }

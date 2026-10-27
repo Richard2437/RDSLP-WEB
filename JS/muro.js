@@ -21,6 +21,15 @@ document.addEventListener('DOMContentLoaded', function () {
         loadUserData();
         loadFeed();
         setupEventListeners();
+
+        // Escuchar sincronización con Supabase para actualizar rol y permisos en vivo
+        const handleUserUpdate = (e) => {
+            currentUser = e.detail || auth.getCurrentUser();
+            loadUserData();
+            loadFeed();
+        };
+        window.addEventListener('userSynced', handleUserUpdate);
+        window.addEventListener('rdslp_user_updated', handleUserUpdate);
     }
 
     function checkAuth() {
@@ -216,6 +225,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const likesCount = post.likes?.length || 0;
         const commentsCount = post.comments?.length || 0;
 
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator');
+        const isPostAuthor = currentUser && (String(post.authorId) === String(currentUser.id) || post.authorName === currentUser.name || post.authorEmail === currentUser.email);
+        const canDeletePost = isAdmin || isPostAuthor;
+
         let mediaSection = '';
         if (post.image) {
             mediaSection += `<div class="post-media"><img src="${escapeHtml(post.image)}" alt="Imagen del post" onerror="this.style.display='none'"></div>`;
@@ -258,9 +271,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             <span>${timeAgo}</span>
                         </div>
                     </div>
-                    <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <span class="post-type-badge ${post.type}">${post.type}</span>
                         ${langBadge}
+                        ${canDeletePost ? `<button type="button" class="post-btn-delete" onclick="deletePost(${post.id})" title="Eliminar publicación" style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s;"><span>🗑️ Eliminar</span></button>` : ''}
                     </div>
                 </div>
                 <div class="post-content">
@@ -285,9 +299,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="post-comments" id="comments-${post.id}">
                     <div class="comments-list">
                         ${post.comments?.map(c => {
-            const isCommentAuthor = currentUser && c.authorId === currentUser.id;
-            const canDeleteOthers = currentUser && PERMISSIONS[currentUser.role]?.canDeleteOthersComments;
-            const showDelete = isCommentAuthor || canDeleteOthers;
+            const isCommentAuthor = currentUser && (String(c.authorId) === String(currentUser.id) || c.authorName === currentUser.name);
+            const canDeleteComment = isCommentAuthor || isAdmin || (currentUser && PERMISSIONS[currentUser.role]?.canDeleteOthersComments);
+            const showDelete = canDeleteComment;
             const showEdit = isCommentAuthor;
             return `
                             <div class="comment-item" data-comment-id="${c.id}">
@@ -374,29 +388,59 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // Eliminar comentario
+    // Eliminar publicación (solo autor o administrador/moderador)
+    window.deletePost = function (postId) {
+        if (!currentUser) {
+            alert('Debes iniciar sesión');
+            return;
+        }
+
+        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'moderator';
+        const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
+        const postIndex = posts.findIndex(p => p.id === postId || String(p.id) === String(postId));
+
+        if (postIndex === -1) return;
+
+        const post = posts[postIndex];
+        const isAuthor = String(post.authorId) === String(currentUser.id) || post.authorName === currentUser.name || post.authorEmail === currentUser.email;
+
+        if (!isAdmin && !isAuthor) {
+            alert('No tienes permisos para eliminar esta publicación');
+            return;
+        }
+
+        if (!confirm('¿Estás seguro de que deseas eliminar esta publicación del muro?')) return;
+
+        posts.splice(postIndex, 1);
+        localStorage.setItem('rdslp_posts', JSON.stringify(posts));
+        loadFeed();
+    };
+
+    // Eliminar comentario (solo autor o administrador/moderador)
     window.deleteComment = function (postId, commentId) {
         if (!currentUser) {
             alert('Debes iniciar sesión');
             return;
         }
 
-        const canDeleteOthers = PERMISSIONS[currentUser.role]?.canDeleteOthersComments;
+        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'moderator' || PERMISSIONS[currentUser.role]?.canDeleteOthersComments;
         const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
-        const post = posts.find(p => p.id === postId);
+        const post = posts.find(p => p.id === postId || String(p.id) === String(postId));
 
         if (post && post.comments) {
-            const comment = post.comments.find(c => c.id === commentId);
+            const comment = post.comments.find(c => c.id === commentId || String(c.id) === String(commentId));
             if (!comment) return;
 
-            if (comment.authorId !== currentUser.id && !canDeleteOthers) {
+            const isAuthor = String(comment.authorId) === String(currentUser.id) || comment.authorName === currentUser.name;
+
+            if (!isAuthor && !isAdmin) {
                 alert('No tienes permisos para eliminar este comentario');
                 return;
             }
 
             if (!confirm('¿Estás seguro de que deseas eliminar este comentario?')) return;
 
-            post.comments = post.comments.filter(c => c.id !== commentId);
+            post.comments = post.comments.filter(c => c.id !== commentId && String(c.id) !== String(commentId));
             localStorage.setItem('rdslp_posts', JSON.stringify(posts));
             loadFeed();
         }
