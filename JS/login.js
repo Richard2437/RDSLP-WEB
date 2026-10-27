@@ -104,16 +104,27 @@ document.addEventListener('DOMContentLoaded', async function () {
     const forgotForm    = document.getElementById('forgotPasswordForm');
     const forgotMsg     = document.getElementById('forgotMessage');
 
+    const hideForgotModal = () => {
+        forgotModal?.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+
     forgotBtn?.addEventListener('click', function (e) {
         e.preventDefault();
         forgotForm?.reset();
         if (forgotMsg) forgotMsg.style.display = 'none';
         forgotModal?.classList.add('active');
+        document.body.style.overflow = 'hidden';
     });
 
-    const hideForgotModal = () => forgotModal?.classList.remove('active');
     closeForgot?.addEventListener('click', hideForgotModal);
     cancelForgot?.addEventListener('click', hideForgotModal);
+    forgotModal?.addEventListener('click', (e) => {
+        if (e.target === forgotModal) hideForgotModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && forgotModal?.classList.contains('active')) hideForgotModal();
+    });
 
     forgotForm?.addEventListener('submit', async function (e) {
         e.preventDefault();

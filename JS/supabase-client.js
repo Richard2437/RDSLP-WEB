@@ -5,11 +5,11 @@
 ===================================================== */
 
 (function () {
-    // Configuración segura: las credenciales se obtienen del endpoint /api/config
-    // que lee las variables de entorno del servidor. NO se hardcodean aquí.
+    // Configuración: intenta primero /api/config (variables de entorno de Vercel/Node).
+    // Si no están configuradas en el servidor, usa estas credenciales públicas (Anon Key) como respaldo:
     const DEFAULT_CONFIG = {
-        supabaseUrl: null,
-        supabaseAnonKey: null
+        supabaseUrl: 'https://ewgmnqhsucmzjhgvqleg.supabase.co',
+        supabaseAnonKey: 'sb_publishable__5CVGdsxC2OTqYwX--7K6g_tlmB8WFY'
     };
 
     let clientInstance = null;

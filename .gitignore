@@ -8,6 +8,7 @@ node_modules/
 # Variables de entorno y credenciales sensibles
 .env
 .env.*
+!.env.example
 .env.local
 .env.development
 .env.production

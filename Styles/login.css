@@ -252,15 +252,36 @@ body {
     color: var(--text-secondary);
 }
 
-.forgot-password {
+.forgot-password,
+.btn-forgot-password {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
     color: var(--accent-secondary);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.2s ease;
+    font-size: 13px;
+    font-family: inherit;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
 }
 
-.forgot-password:hover {
-    color: var(--accent-primary);
+.forgot-password:hover,
+.btn-forgot-password:hover {
+    color: #ffffff;
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(99, 102, 241, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.forgot-password:active,
+.btn-forgot-password:active {
+    transform: translateY(0);
 }
 
 /* Botón de login */
@@ -393,8 +414,16 @@ body {
 
 /* Responsive */
 @media (max-width: 480px) {
+    body {
+        padding: 16px 12px;
+    }
+
+    .login-container {
+        max-width: 100%;
+    }
+
     .login-card {
-        padding: 30px 24px;
+        padding: 26px 20px;
     }
 
     .login-header h1 {
@@ -404,8 +433,243 @@ body {
     .form-options {
         flex-direction: column;
         gap: 12px;
-        align-items: flex-start;
+        align-items: stretch;
+    }
+
+    .btn-forgot-password,
+    .forgot-password {
+        justify-content: center;
+        width: 100%;
+        padding: 9px 14px;
+        font-size: 13px;
     }
 }
 
-/* Estilos legales importados desde common-legal.css (sin duplicar) */
+/* =====================================================
+   Modal de Recuperación de Contraseña (Popup Flotante)
+===================================================== */
+.modal,
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(8, 8, 12, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.modal.active,
+.modal-backdrop.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-card,
+.modal-content {
+    background: #18181c;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(99, 102, 241, 0.2);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    overflow: hidden;
+    animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes modalScaleIn {
+    from {
+        transform: scale(0.93) translateY(10px);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    background: #1f1f25;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: var(--accent-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.modal-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 2px 0 0 0;
+}
+
+.modal-close,
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.modal-close:hover,
+.modal-close-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-form {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modal-description {
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.modal-form .form-group {
+    margin-bottom: 0;
+}
+
+.modal-status-msg {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+    animation: fadeInMsg 0.2s ease;
+}
+
+@keyframes fadeInMsg {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.btn-cancel,
+.btn-modal-cancel {
+    padding: 11px 18px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover,
+.btn-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-save,
+.btn-modal-submit {
+    padding: 11px 20px;
+    background: var(--gradient-primary);
+    border: none;
+    color: #ffffff;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.btn-save:hover,
+.btn-modal-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.btn-save:disabled,
+.btn-modal-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+@media (max-width: 480px) {
+    .modal-card,
+    .modal-content {
+        max-width: 100%;
+        border-radius: 14px;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+
+    .btn-cancel,
+    .btn-modal-cancel,
+    .btn-save,
+    .btn-modal-submit {
+        width: 100%;
+        justify-content: center;
+    }
+}
