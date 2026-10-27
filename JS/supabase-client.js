@@ -237,6 +237,7 @@
             loginTime: new Date().toISOString()
         };
         sessionStorage.setItem('rdslp_user', JSON.stringify(userData));
+        localStorage.setItem('rdslp_user', JSON.stringify(userData));
     }
 
     // =====================================================
