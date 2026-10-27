@@ -125,10 +125,11 @@
         return data;
     }
 
-    // Registro de nuevo usuario
-    async function signUpWithEmail({ email, password, firstName, lastName }) {
+    // Registro de nuevo usuario (permite rol: user, moderator, admin)
+    async function signUpWithEmail({ email, password, firstName, lastName, role = 'user' }) {
         const client = await getClient();
         const fullName = `${firstName.trim()} ${lastName.trim()}`;
+        const userRole = (role && ['user', 'moderator', 'admin'].includes(role)) ? role : 'user';
 
         const { data, error } = await client.auth.signUp({
             email: email.trim(),
@@ -138,21 +139,21 @@
                     first_name: firstName.trim(),
                     last_name: lastName.trim(),
                     name: fullName,
-                    role: 'user'
+                    role: userRole
                 }
             }
         });
 
         if (error) throw error;
 
-        // Intentar registrar en la tabla perfiles
+        // Registrar o actualizar en la tabla perfiles
         if (data.user) {
             try {
                 await upsertProfile({
                     id: data.user.id,
                     nombre: fullName,
                     correo: email.trim(),
-                    rol: 'user'
+                    rol: userRole
                 });
             } catch (pErr) {
                 console.warn('[RDSLP] Nota: Registro en tabla perfiles:', pErr.message);
@@ -302,6 +303,7 @@
     }
 
     // Cambiar rol de usuario en Supabase (Admin)
+    // Cambiar rol de usuario en Supabase (Admin o Usuario asignando)
     async function changeUserRole(userId, newRole) {
         const client = await getClient();
         const { data, error } = await client
@@ -312,6 +314,24 @@
         if (error) {
             console.error('[RDSLP] Error al cambiar rol:', error);
             throw error;
+        }
+
+        // Sincronizar en sesión local si es el usuario actual
+        try {
+            const raw = localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user');
+            if (raw) {
+                const cur = JSON.parse(raw);
+                if (cur.id === userId) {
+                    cur.role = newRole;
+                    localStorage.setItem('rdslp_user', JSON.stringify(cur));
+                    sessionStorage.setItem('rdslp_user', JSON.stringify(cur));
+                    if (window.authManager) {
+                        window.authManager.currentUser = cur;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[RDSLP] Error sincronizando rol local:', e);
         }
 
         return { success: true, data };

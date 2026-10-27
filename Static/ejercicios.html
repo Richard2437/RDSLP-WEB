@@ -145,11 +145,11 @@
                             Configurar API Key ⚙️
                         </button>
 
-                        <button class="btn-run" id="runCodeBtn">
+                        <button class="btn-run" id="runCodeBtn" title="Ejecutar código en el sandbox">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
-                            Ejecutar JS
+                            <span>Ejecutar Código (<span id="currentLangBadge">JS</span>)</span>
                         </button>
                         <button class="btn-evaluate" id="evaluateBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -160,13 +160,51 @@
                             </svg>
                             Calificar con IA
                         </button>
-                        <button class="btn-clear" id="clearBtn">Limpiar</button>
+                        <button class="btn-clear" id="clearBtn">Limpiar Código</button>
                     </div>
 
-                    <div class="output-section">
-                        <h4>Salida / Resultado:</h4>
-                        <div class="output-box" id="outputBox">
-                            <p class="output-placeholder">La salida aparecerá aquí...</p>
+                    <!-- Terminal y Shell Interactivo -->
+                    <div class="terminal-container" id="terminalContainer">
+                        <div class="terminal-titlebar">
+                            <div class="terminal-dots">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                            </div>
+                            <div class="terminal-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="4 17 10 11 4 5"></polyline>
+                                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                                </svg>
+                                <span>rdslp-terminal (bash / sandbox multilenguaje)</span>
+                            </div>
+                            <div class="terminal-actions">
+                                <button type="button" class="term-btn" id="clearTerminalBtn" title="Limpiar salida">Limpiar</button>
+                                <button type="button" class="term-btn" id="copyOutputBtn" title="Copiar consola">Copiar</button>
+                            </div>
+                        </div>
+
+                        <div class="terminal-screen" id="terminalScreen">
+                            <div class="terminal-line system-msg">
+                                <span class="term-time">[RDSLP Sandbox v2.5]</span>
+                                <span class="term-text">Soporte multilenguaje activo: <strong>JavaScript</strong>, <strong>Python</strong>, <strong>SQL</strong>, <strong>Java</strong>, <strong>C++</strong>.</span>
+                            </div>
+                            <div class="terminal-line system-msg">
+                                <span class="term-prompt">rdslp@sandbox:~$</span>
+                                <span class="term-text">Presiona "Ejecutar Código" o escribe comandos en la shell inferior (ej: <code>run</code>, <code>help</code>, <code>python 2+2</code>).</span>
+                            </div>
+                            <div id="outputBox" class="terminal-output-feed"></div>
+                        </div>
+
+                        <div class="terminal-interactive-bar">
+                            <span class="term-prompt-interactive">rdslp@sandbox:~$</span>
+                            <input type="text" id="terminalInput" class="terminal-input" placeholder="Comando o expresión (ej: run, help, python print('Hola'), sql ...)" autocomplete="off" spellcheck="false">
+                            <button type="button" class="btn-terminal-send" id="terminalSendBtn" title="Enviar comando">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -234,6 +272,10 @@
             </div>
         </div>
     </main>
+
+    <!-- Interprete de Python en WebAssembly / JS (Skulpt) -->
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
 
     <script src="../JS/supabase-client.js"></script>
     <script src="../JS/auth.js"></script>

@@ -65,6 +65,8 @@ class AuthManager {
                 const user = await window.rdslpSupabase.getCurrentUser();
                 if (user) {
                     this.currentUser = user;
+                    localStorage.setItem('rdslp_user', JSON.stringify(user));
+                    sessionStorage.setItem('rdslp_user', JSON.stringify(user));
                 }
             } catch (err) {
                 console.warn('[RDSLP] Sincronización de usuario Supabase:', err.message);

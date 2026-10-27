@@ -162,38 +162,226 @@
     background: var(--bg-input);
 }
 
-.output-section {
-    padding: 20px;
-    border-top: 1px solid var(--border-color);
+/* Terminal y Shell de Ejecución Multilenguaje */
+.terminal-container {
+    margin: 20px;
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
 }
 
-.output-section h4 {
-    font-size: 14px;
+.terminal-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #161b22;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.terminal-dots {
+    display: flex;
+    gap: 7px;
+}
+
+.terminal-dots .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.terminal-dots .dot.red { background: #ff5f56; }
+.terminal-dots .dot.yellow { background: #ffbd2e; }
+.terminal-dots .dot.green { background: #27c93f; }
+
+.terminal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #8b949e;
+    font-family: 'Consolas', 'Fira Code', monospace;
     font-weight: 500;
-    margin-bottom: 12px;
-    color: var(--text-secondary);
 }
 
-.output-box {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    min-height: 100px;
-    font-family: 'Consolas', 'Monaco', monospace;
+.terminal-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.term-btn {
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.term-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #58a6ff;
+}
+
+.terminal-screen {
+    padding: 16px 20px;
+    min-height: 180px;
+    max-height: 350px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Fira Code', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #e6edf3;
+    background: #0d1117;
+}
+
+.terminal-line {
+    margin-bottom: 6px;
+    word-break: break-word;
+}
+
+.terminal-line.system-msg {
+    color: #8b949e;
+    font-size: 12px;
+}
+
+.term-prompt {
+    color: #58a6ff;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.terminal-output-feed {
+    margin-top: 10px;
+}
+
+.term-exec-block {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.term-exec-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    color: #79c0ff;
+    font-size: 12px;
+}
+
+.term-lang-tag {
+    background: rgba(88, 166, 255, 0.15);
+    color: #58a6ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.term-stdout {
+    color: #56d364;
+    white-space: pre-wrap;
+    background: rgba(86, 211, 100, 0.04);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 6px 0;
+    border-left: 3px solid #56d364;
+}
+
+.term-stderr {
+    color: #ff7b72;
+    white-space: pre-wrap;
+    background: rgba(255, 123, 114, 0.08);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 6px 0;
+    border-left: 3px solid #ff7b72;
+}
+
+.term-exec-footer {
+    font-size: 11px;
+    color: #8b949e;
+    display: flex;
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.term-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 12px;
+}
+
+.term-table th {
+    background: #161b22;
+    color: #58a6ff;
+    padding: 6px 12px;
+    text-align: left;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.term-table td {
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+}
+
+.terminal-interactive-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #161b22;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.term-prompt-interactive {
+    color: #58a6ff;
+    font-family: 'Consolas', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e6edf3;
+    font-family: 'Consolas', 'Fira Code', monospace;
     font-size: 13px;
 }
 
-.output-placeholder {
-    color: var(--text-muted);
+.terminal-input::placeholder {
+    color: #484f58;
 }
 
-.output-success {
-    color: var(--success-color);
+.btn-terminal-send {
+    padding: 6px 10px;
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    color: #a5b4fc;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
-.output-error {
-    color: var(--error-color);
+.btn-terminal-send:hover {
+    background: var(--gradient-primary);
+    color: white;
 }
 
 /* Panel de calificación */

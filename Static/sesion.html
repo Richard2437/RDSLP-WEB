@@ -134,6 +134,20 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="userRole">Rol en la Comunidad (Supabase)</label>
+                    <div class="input-wrapper" style="position: relative;">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                        </svg>
+                        <select id="userRole" name="userRole" style="width: 100%; background: transparent; border: none; color: var(--text-primary); padding: 14px 16px 14px 44px; font-size: 14px; outline: none; cursor: pointer; appearance: auto;">
+                            <option value="user" style="background: #1e1e2f; color: #fff;">Usuario / Desarrollador (user)</option>
+                            <option value="moderator" style="background: #1e1e2f; color: #fff;">Moderador de Contenido (moderator)</option>
+                            <option value="admin" style="background: #1e1e2f; color: #fff;">Administrador del Sistema (admin)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group legal-consent-group">
                     <label class="terms-checkbox">
                         <input type="checkbox" id="terms" name="terms" required>
@@ -252,6 +266,7 @@
                 const email = document.getElementById('email').value.trim();
                 const password = passwordInput.value;
                 const confirmPassword = confirmPasswordInput.value;
+                const role = document.getElementById('userRole')?.value || 'user';
                 const terms = document.getElementById('terms').checked;
 
                 hideMessages();
@@ -283,7 +298,8 @@
                         email,
                         password,
                         firstName,
-                        lastName
+                        lastName,
+                        role
                     });
 
                     showSuccess('¡Cuenta creada exitosamente! Redirigiendo...');
