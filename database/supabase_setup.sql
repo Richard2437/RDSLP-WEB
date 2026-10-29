@@ -251,7 +251,56 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =====================================================
--- 7. PERMISOS Y PRIVILEGIOS
+-- 7. TABLA: notificaciones (Campanita, Likes, Mensajes, Strikes)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.notificaciones (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    sender_name TEXT DEFAULT 'Sistema',
+    sender_avatar TEXT DEFAULT '🔔',
+    type TEXT NOT NULL, -- 'like', 'comment', 'message', 'community', 'strike', 'mute', 'support', 'system'
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    link TEXT DEFAULT '',
+    read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.notificaciones ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "notificaciones_select_public" ON public.notificaciones;
+CREATE POLICY "notificaciones_select_public" ON public.notificaciones FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "notificaciones_insert_public" ON public.notificaciones;
+CREATE POLICY "notificaciones_insert_public" ON public.notificaciones FOR INSERT TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "notificaciones_update_public" ON public.notificaciones;
+CREATE POLICY "notificaciones_update_public" ON public.notificaciones FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "notificaciones_delete_public" ON public.notificaciones;
+CREATE POLICY "notificaciones_delete_public" ON public.notificaciones FOR DELETE TO anon, authenticated USING (true);
+
+-- =====================================================
+-- 8. TABLA: soporte_mensajes (Chat Usuario-Máquina / Admin / /ayuda)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.soporte_mensajes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ticket_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    user_name TEXT NOT NULL,
+    user_email TEXT,
+    sender_role TEXT NOT NULL, -- 'user', 'bot', 'admin'
+    sender_name TEXT DEFAULT 'Usuario',
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.soporte_mensajes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "soporte_select_public" ON public.soporte_mensajes;
+CREATE POLICY "soporte_select_public" ON public.soporte_mensajes FOR SELECT TO anon, authenticated USING (true);
+DROP POLICY IF EXISTS "soporte_insert_public" ON public.soporte_mensajes;
+CREATE POLICY "soporte_insert_public" ON public.soporte_mensajes FOR INSERT TO anon, authenticated WITH CHECK (true);
+DROP POLICY IF EXISTS "soporte_delete_public" ON public.soporte_mensajes;
+CREATE POLICY "soporte_delete_public" ON public.soporte_mensajes FOR DELETE TO anon, authenticated USING (true);
+
+-- =====================================================
+-- 9. PERMISOS Y PRIVILEGIOS
 -- =====================================================
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;

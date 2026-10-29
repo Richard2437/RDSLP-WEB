@@ -260,7 +260,8 @@ document.addEventListener('DOMContentLoaded', function () {
             'libros': 'Libros Recomendados',
             'comunidad': 'Comunidad',
             'perfil': 'Mi Perfil',
-            'admin': 'Panel de Administración'
+            'admin': 'Panel de Administración',
+            'ayuda': 'Centro de Ayuda y Soporte'
         };
         pageTitle.textContent = titles[sectionId] || 'Dashboard';
 
@@ -271,6 +272,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 break;
             case 'admin':
                 loadAdminPanel();
+                break;
+            case 'ayuda':
+                loadAyudaSection();
                 break;
             case 'comunidad':
                 loadCommunity();
@@ -1023,15 +1027,31 @@ db.usuarios.<span class="function">updateOne</span>(
 
         let allUsers = [];
         try {
-            if (window.rdslpSupabase) {
-                allUsers = await window.rdslpSupabase.getAllUsers();
-            } else {
-                allUsers = auth.getAllUsers();
+            if (window.rdslpSupabase && window.rdslpSupabase.getAllUsers) {
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+                allUsers = await Promise.race([window.rdslpSupabase.getAllUsers(), timeoutPromise]);
             }
         } catch (err) {
-            console.error('Error cargando usuarios:', err);
-            usersList.innerHTML = `<div style="padding: 20px; color: #ef4444; text-align: center;">Error al conectar con Supabase: ${escapeHtml(err.message)}</div>`;
-            return;
+            console.warn('[RDSLP] getAllUsers de Supabase lento o error, usando fallback:', err.message);
+        }
+
+        if (!allUsers || allUsers.length === 0) {
+            if (auth && typeof auth.getAllUsers === 'function') {
+                allUsers = auth.getAllUsers() || [];
+            }
+            if (allUsers.length === 0) {
+                const u = currentUser || JSON.parse(sessionStorage.getItem('rdslp_user') || localStorage.getItem('rdslp_user') || '{}');
+                if (u && u.email) {
+                    allUsers = [{
+                        id: u.id || 'usr_current',
+                        email: u.email,
+                        name: u.name || 'richard JG',
+                        role: u.role || 'admin',
+                        isBanned: false,
+                        avatar: (u.name ? u.name.charAt(0) : 'R').toUpperCase()
+                    }];
+                }
+            }
         }
 
         // Obtener comunidades creadas (de Supabase en la nube con respaldo local)
@@ -1069,6 +1089,49 @@ db.usuarios.<span class="function">updateOne</span>(
         const bannedCount = allUsers.filter(u => u.isBanned || u.role === 'banned').length;
         const totalBannedEl = document.getElementById('totalBanned');
         if (totalBannedEl) totalBannedEl.textContent = bannedCount;
+
+        // ── Pestaña: Solicitudes de Soporte (/ayuda) ──────────────────────
+        if (filter === 'support-tickets') {
+            listTitle.textContent = 'Solicitudes de Soporte Técnico y /ayuda';
+            usersList.innerHTML = '<div style="padding: 20px; color: var(--text-secondary); text-align: center;"><div class="loader-small" style="display: inline-block; margin-right: 8px;"></div> Cargando tickets de soporte...</div>';
+
+            let tickets = [];
+            try {
+                if (window.rdslpNotifications && window.rdslpNotifications.getAllSupportTickets) {
+                    tickets = await window.rdslpNotifications.getAllSupportTickets();
+                }
+            } catch (e) {
+                tickets = [];
+            }
+
+            if (listCount) listCount.textContent = `${tickets.length} solicitudes`;
+
+            if (tickets.length === 0) {
+                usersList.innerHTML = '<p style="color: var(--text-muted); padding: 35px; text-align: center;">No hay solicitudes de ayuda activas en este momento.</p>';
+                return;
+            }
+
+            usersList.innerHTML = tickets.map(t => {
+                const dateStr = t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Reciente';
+                return `
+                    <div class="support-ticket-item" style="display: flex; align-items: center; justify-content: space-between; padding: 18px; border-bottom: 1px solid var(--border-color); gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 250px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                <strong style="font-size: 15px; color: var(--text-primary);">${escapeHtml(t.userName)}</strong>
+                                <span style="font-size: 12px; color: var(--text-muted);">${escapeHtml(t.userEmail || '')}</span>
+                                <span style="padding: 2px 8px; border-radius: 6px; font-size: 11px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">🚨 Ayuda</span>
+                            </div>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 8px 0; background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--accent-primary);">${escapeHtml(t.lastMessage)}</p>
+                            <span style="font-size: 11.5px; color: var(--text-muted);">🕒 ${dateStr} · ${t.messageCount} mensajes en el hilo</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button onclick="window.replyToSupportTicket('${t.ticketId}', '${escapeHtml(t.userName)}')" style="padding: 8px 16px; border-radius: 6px; background: var(--accent-primary); color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 600;">💬 Responder al Usuario</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            return;
+        }
 
         // ── Pestaña: Comunidades Creadas ─────────────────────────────────
         if (filter === 'created-communities') {
@@ -1533,12 +1596,114 @@ db.usuarios.<span class="function">updateOne</span>(
 
     // Refresh admin user list when users are added/updated
     window.addEventListener('userListUpdated', () => {
-        if (currentUser && currentUser.role === 'admin') {
+        if (checkIsAdmin()) {
             const activeTab = document.querySelector('.admin-tab.active');
-            renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
-            const users = auth.getAllUsers();
-            document.getElementById('totalUsers').textContent = users.length;
+            renderUserList(activeTab ? activeTab.dataset.tab : 'all-users');
         }
     });
+
+    // ========== SECCIÓN DE AYUDA Y SOPORTE TÉCNICO ==========
+    let ayudaInitialized = false;
+    async function loadAyudaSection() {
+        const statusBox = document.getElementById('ayudaAccountStatusBox');
+        const messagesContainer = document.getElementById('supportChatMessages');
+        const chatForm = document.getElementById('supportChatForm');
+        const chatInput = document.getElementById('supportChatInput');
+
+        if (!statusBox || !messagesContainer) return;
+
+        // 1. Mostrar estado de moderación/cuenta del usuario actual
+        if (currentUser) {
+            try {
+                if (window.socialModeration) {
+                    const status = window.socialModeration.getUserSanctions(currentUser.id);
+                    if (status.isBanned) {
+                        statusBox.innerHTML = `
+                            <div style="color: #ef4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span>⛔</span> Cuenta Suspendida / Baneada
+                            </div>
+                            <p style="margin: 6px 0 0 0; color: #f87171; font-size: 12px;">Motivo: ${escapeHtml(status.banReason || 'Infracción de normas')} (${status.banExpires ? 'Expira: ' + new Date(status.banExpires).toLocaleDateString() : 'Permanente'})</p>
+                        `;
+                    } else if (status.isMuted) {
+                        statusBox.innerHTML = `
+                            <div style="color: #fbbf24; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span>🔇</span> Chat y Comentarios Silenciados
+                            </div>
+                            <p style="margin: 6px 0 0 0; color: #fde68a; font-size: 12px;">Motivo: ${escapeHtml(status.muteReason || 'Infracción')} (${status.muteExpires ? 'Expira: ' + new Date(status.muteExpires).toLocaleDateString() : 'Permanente'})</p>
+                        `;
+                    } else if (status.warnings && status.warnings.length > 0) {
+                        statusBox.innerHTML = `
+                            <div style="color: #f59e0b; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span>⚠️</span> ${status.warnings.length} Aviso(s) Disciplinario(s)
+                            </div>
+                            <p style="margin: 6px 0 0 0; color: var(--text-secondary); font-size: 11.5px;">Último aviso: ${escapeHtml(status.warnings[status.warnings.length - 1].reason)}</p>
+                        `;
+                    } else {
+                        statusBox.innerHTML = `
+                            <div style="color: #10b981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span>🟢</span> Cuenta en Excelente Estado
+                            </div>
+                            <p style="margin: 6px 0 0 0; color: var(--text-muted); font-size: 11.5px;">Sin strikes ni sanciones registradas.</p>
+                        `;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        // 2. Cargar mensajes del chat
+        async function renderChat() {
+            if (!window.rdslpNotifications) return;
+            const msgs = await window.rdslpNotifications.getSupportMessages();
+            messagesContainer.innerHTML = msgs.map(m => {
+                const isUser = m.senderRole === 'user';
+                const isAdmin = m.senderRole === 'admin';
+                const isBot = m.senderRole === 'bot';
+                const bubbleClass = isUser ? 'user' : (isAdmin ? 'admin' : 'bot');
+                const timeStr = m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                return `
+                    <div class="support-bubble ${bubbleClass}">
+                        <div style="font-weight: 600; font-size: 12px; margin-bottom: 3px; color: ${isAdmin ? '#c084fc' : (isBot ? '#818cf8' : '#ffffff')};">
+                            ${escapeHtml(m.senderName)}
+                        </div>
+                        <div>${escapeHtml(m.message)}</div>
+                        <div class="support-bubble-meta">
+                            <span>${timeStr}</span>
+                            ${isAdmin ? '<span>· Oficial</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        await renderChat();
+
+        if (!ayudaInitialized && chatForm && chatInput) {
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (!text) return;
+                chatInput.value = '';
+                await window.rdslpNotifications.sendSupportMessage(text);
+                await renderChat();
+            });
+
+            window.addEventListener('rdslp_support_updated', () => {
+                renderChat();
+            });
+            ayudaInitialized = true;
+        }
+    }
+
+    window.replyToSupportTicket = async function (ticketId, userName) {
+        const text = prompt(`Escribe la respuesta oficial para ${userName}:`);
+        if (!text || !text.trim()) return;
+        if (window.rdslpNotifications && window.rdslpNotifications.sendSupportMessage) {
+            await window.rdslpNotifications.sendSupportMessage(text.trim(), ticketId);
+            alert(`✅ Respuesta enviada exitosamente a ${userName}.`);
+            renderUserList('support-tickets');
+        }
+    };
 });
+
 

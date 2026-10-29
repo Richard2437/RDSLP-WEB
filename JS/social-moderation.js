@@ -142,6 +142,18 @@
             localStorage.setItem('rdslp_direct_chats', JSON.stringify(chats));
             window.dispatchEvent(new CustomEvent('rdslp_chat_message', { detail: { key, message: newMessage } }));
 
+            if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
+                window.rdslpNotifications.createNotification({
+                    userId: String(targetUserId),
+                    senderName: fromUser.name || 'Usuario',
+                    senderAvatar: '💬',
+                    type: 'message',
+                    title: '💬 Nuevo Mensaje Directo',
+                    body: `@${fromUser.name || 'Usuario'}: "${text.trim().substring(0, 60)}"`,
+                    link: '../Static/muro.html'
+                });
+            }
+
             return { success: true, message: newMessage };
         },
 
@@ -232,6 +244,18 @@
             sanctions[id].warnings.push(warning);
             this.saveSanctions(sanctions);
 
+            if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
+                window.rdslpNotifications.createNotification({
+                    userId: String(targetUserId),
+                    senderName: adminUser.name || 'Moderador',
+                    senderAvatar: '⚠️',
+                    type: 'strike',
+                    title: '⚠️ Aviso Oficial de la Comunidad (Strike)',
+                    body: `Has recibido un strike por: ${reason || 'Infracción de normas'}. ${note ? 'Nota: ' + note : ''}`,
+                    link: '../Static/dashboard.html#ayuda'
+                });
+            }
+
             return { success: true, warning, count: sanctions[id].warnings.length };
         },
 
@@ -258,6 +282,19 @@
             sanctions[id].mutedAt = new Date().toISOString();
 
             this.saveSanctions(sanctions);
+
+            if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
+                window.rdslpNotifications.createNotification({
+                    userId: String(targetUserId),
+                    senderName: adminUser.name || 'Moderador',
+                    senderAvatar: '🔇',
+                    type: 'mute',
+                    title: '🔇 Silenciado de Chat y Comentarios',
+                    body: `Tu cuenta ha sido silenciada (${durationDays ? durationDays + ' días' : 'Permanente'}). Motivo: ${reason || 'Comportamiento inapropiado'}`,
+                    link: '../Static/dashboard.html#ayuda'
+                });
+            }
+
             return { success: true, mutedUntil };
         },
 
@@ -284,6 +321,18 @@
             sanctions[id].bannedAt = new Date().toISOString();
 
             this.saveSanctions(sanctions);
+
+            if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
+                window.rdslpNotifications.createNotification({
+                    userId: String(targetUserId),
+                    senderName: adminUser.name || 'Moderador',
+                    senderAvatar: '⛔',
+                    type: 'system',
+                    title: '⛔ Cuenta Suspendida / Baneada',
+                    body: `Tu cuenta ha sido suspendida (${durationDays ? durationDays + ' días' : 'Permanente'}). Motivo: ${reason || 'Violación de normas'}`,
+                    link: '../Static/dashboard.html#ayuda'
+                });
+            }
 
             // Intentar registrar en Supabase
             if (window.rdslpSupabase && bannedUntil === 'permanent') {

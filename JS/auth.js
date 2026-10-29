@@ -231,13 +231,13 @@ class AuthManager {
 
     updateGlobalAdminUI() {
         const user = this.getCurrentUser();
-        const role = (user && user.role) ? user.role : 'user';
-        const isAdmin = (role === 'admin');
+        const role = (user && user.role) ? String(user.role).toLowerCase().trim() : 'user';
+        const isAdmin = (role === 'admin' || role === 'administrador');
 
         // Sincronizar clase en el elemento raíz para CSS instantáneo
         if (typeof document !== 'undefined' && document.documentElement) {
             document.documentElement.classList.remove('role-admin', 'role-moderator', 'role-user');
-            document.documentElement.classList.add(role === 'admin' ? 'role-admin' : (role === 'moderator' ? 'role-moderator' : 'role-user'));
+            document.documentElement.classList.add(isAdmin ? 'role-admin' : (role === 'moderator' || role === 'moderador' ? 'role-moderator' : 'role-user'));
         }
 
         // 1. Mostrar/ocultar elementos de administrador en el menú
@@ -248,7 +248,9 @@ class AuthManager {
         // 2. Crear o actualizar el badge de rol en la barra lateral (.sidebar-footer)
         const roleNames = {
             'admin': 'ADMINISTRADOR',
+            'administrador': 'ADMINISTRADOR',
             'moderator': 'MODERADOR',
+            'moderador': 'MODERADOR',
             'user': 'USUARIO'
         };
         const roleText = roleNames[role] || 'USUARIO';
@@ -256,7 +258,7 @@ class AuthManager {
         const badges = document.querySelectorAll('#userRoleBadge, .user-role-badge, .sidebar-footer .user-role-badge');
         badges.forEach(badge => {
             if (badge.textContent !== roleText) badge.textContent = roleText;
-            badge.className = 'user-role-badge ' + role;
+            badge.className = 'user-role-badge ' + (isAdmin ? 'admin' : role);
             badge.style.display = 'inline-block';
         });
 
