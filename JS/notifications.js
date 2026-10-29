@@ -613,6 +613,8 @@
             else if (n.type === 'mute') icon = '🔇';
             else if (n.type === 'support') icon = '🚨';
             else if (n.type === 'community') icon = '👥';
+            else if (n.type === 'follow') icon = '👤';
+            else if (n.type === 'broadcast') icon = '📢';
 
             return `
                 <div class="notification-item ${isUnread ? 'unread' : ''}" ${bgClass} onclick="window.rdslpNotifications.handleNotificationClick('${n.id}', '${encodeURIComponent(n.link || '')}')" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;">

@@ -52,6 +52,21 @@
                     createdAt: new Date().toISOString()
                 });
                 isNowFollowing = true;
+
+                // Enviar notificación al usuario seguido para que se marque en su campanita y alumbre
+                try {
+                    if (window.rdslpNotifications && typeof window.rdslpNotifications.createNotification === 'function') {
+                        window.rdslpNotifications.createNotification({
+                            userId: String(targetUser.id),
+                            senderName: followerUser.name || 'Usuario',
+                            senderAvatar: '👤',
+                            type: 'follow',
+                            title: '👤 Nuevo Seguidor',
+                            body: `@${followerUser.name || 'Un usuario'} ha comenzado a seguirte en la red social.`,
+                            link: '../Static/dashboard.html#perfil'
+                        }).catch(() => {});
+                    }
+                } catch (e) {}
             }
 
             this.saveFollows(follows);

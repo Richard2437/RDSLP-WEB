@@ -1268,6 +1268,86 @@ db.usuarios.<span class="function">updateOne</span>(
             return;
         }
 
+        // ── Pestaña: Comunicados Globales a Toda la Comunidad ───────────
+        if (filter === 'broadcast-announcements') {
+            listTitle.textContent = '📢 Comunicados Oficiales para Toda la Comunidad';
+            if (listCount) listCount.textContent = 'Llegará a la campanita de todos los usuarios registrados';
+
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem('rdslp_broadcast_history') || '[]');
+            } catch (e) {}
+
+            const historyHTML = history.length === 0
+                ? '<p style="color: var(--text-muted); font-size: 13px; margin: 10px 0 0 0;">No has emitido comunicados aún.</p>'
+                : history.map(b => {
+                    const d = b.date ? new Date(b.date).toLocaleDateString('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+                    return `
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <strong style="color: var(--text-primary); font-size: 13.5px;">${escapeHtml(b.title)}</strong>
+                                <span style="font-size: 11px; color: var(--text-muted);">${d}</span>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 12.5px; margin: 0; line-height: 1.4;">${escapeHtml(b.body)}</p>
+                            <div style="margin-top: 6px; font-size: 11px; color: #10b981; font-weight: 500;">✓ Notificación entregada a todos los miembros</div>
+                        </div>
+                    `;
+                }).join('');
+
+            usersList.innerHTML = `
+                <div style="padding: 10px 0;">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 22px; margin-bottom: 24px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <span>📢</span> Redactar Anuncio para Toda la Comunidad
+                        </h4>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin: 0 0 18px 0; line-height: 1.4;">
+                            Este mensaje llegará instantáneamente a la campanita de notificaciones de cada usuario registrado, haciendo que se ilumine y muestre la alerta en tiempo real.
+                        </p>
+
+                        <form id="formAdminBroadcast" onsubmit="window.handleSendBroadcast(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                            <div>
+                                <label style="display: block; font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Título del Comunicado</label>
+                                <input type="text" id="broadcastTitle" placeholder="Ej: 🎉 ¡Gran actualización disponible en RDSLP!" required style="width: 100%; padding: 10px 14px; border-radius: 8px; background: var(--bg-input, #1f2937); border: 1px solid var(--border-color); color: #fff; font-size: 13.5px;">
+                            </div>
+
+                            <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Tipo de Notificación</label>
+                                    <select id="broadcastType" style="width: 100%; padding: 10px 14px; border-radius: 8px; background: var(--bg-input, #1f2937); border: 1px solid var(--border-color); color: #fff; font-size: 13.5px; cursor: pointer;">
+                                        <option value="📢 Anuncio General">📢 Anuncio General</option>
+                                        <option value="🚀 Novedades y Actualizaciones">🚀 Novedades y Actualizaciones</option>
+                                        <option value="⚠️ Aviso Importante del Sistema">⚠️ Aviso Importante del Sistema</option>
+                                        <option value="🏆 Evento Comunitario">🏆 Evento Comunitario</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="display: block; font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Enlace Opcional al hacer clic</label>
+                                    <input type="text" id="broadcastLink" placeholder="Ej: ../Static/comunidad.html o #muro" style="width: 100%; padding: 10px 14px; border-radius: 8px; background: var(--bg-input, #1f2937); border: 1px solid var(--border-color); color: #fff; font-size: 13.5px;">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="display: block; font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">Mensaje / Contenido</label>
+                                <textarea id="broadcastBody" rows="4" placeholder="Escribe el mensaje detallado que leerán todos los usuarios en sus notificaciones..." required style="width: 100%; padding: 10px 14px; border-radius: 8px; background: var(--bg-input, #1f2937); border: 1px solid var(--border-color); color: #fff; font-size: 13.5px; resize: vertical; line-height: 1.4;"></textarea>
+                            </div>
+
+                            <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                                <button type="submit" id="btnSubmitBroadcast" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; padding: 11px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); transition: transform 0.2s;">
+                                    <span>🚀 Enviar a Toda la Comunidad</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div>
+                        <h4 style="font-size: 14px; color: var(--text-primary); margin: 0 0 12px 0;">Historial de Comunicados Emitidos</h4>
+                        ${historyHTML}
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
         // ── Pestaña: Comunidades Creadas ─────────────────────────────────
         if (filter === 'created-communities') {
             listTitle.textContent = 'Comunidades y Salas Creadas';
@@ -1837,6 +1917,76 @@ db.usuarios.<span class="function">updateOne</span>(
             await window.rdslpNotifications.sendSupportMessage(text.trim(), ticketId);
             alert(`✅ Respuesta enviada exitosamente a ${userName}.`);
             renderUserList('support-tickets');
+        }
+    };
+
+    window.handleSendBroadcast = async function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!checkIsAdmin()) {
+            alert('Acción restringida: Se requieren permisos de Administrador.');
+            return;
+        }
+
+        const titleInput = document.getElementById('broadcastTitle');
+        const bodyInput = document.getElementById('broadcastBody');
+        const typeSelect = document.getElementById('broadcastType');
+        const linkInput = document.getElementById('broadcastLink');
+        const submitBtn = document.getElementById('btnSubmitBroadcast');
+
+        if (!titleInput || !bodyInput) return;
+        const title = titleInput.value.trim();
+        const body = bodyInput.value.trim();
+        const link = linkInput ? linkInput.value.trim() : '';
+        const typeChoice = typeSelect ? typeSelect.value : '📢 Anuncio General';
+
+        if (!title || !body) {
+            alert('Por favor completa el título y el mensaje del comunicado.');
+            return;
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span>⏳ Emitiendo a todos...</span>';
+        }
+
+        try {
+            let avatar = '📢';
+            if (typeChoice.includes('🚀')) avatar = '🚀';
+            else if (typeChoice.includes('⚠️')) avatar = '⚠️';
+            else if (typeChoice.includes('🏆')) avatar = '🏆';
+
+            if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
+                await window.rdslpNotifications.createNotification({
+                    userId: 'all', // Llega a todos los usuarios de la plataforma
+                    senderName: '🛡️ Administrador',
+                    senderAvatar: avatar,
+                    type: 'broadcast',
+                    title: title,
+                    body: body,
+                    link: link || '../Static/comunidad.html'
+                });
+            }
+
+            // Guardar en el historial de comunicados del administrador
+            const historyKey = 'rdslp_broadcast_history';
+            const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            history.unshift({
+                id: 'b_' + Date.now(),
+                title,
+                body,
+                link,
+                date: new Date().toISOString()
+            });
+            localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 30)));
+
+            alert('✅ ¡Comunicado global emitido exitosamente!\nHa sido enviado a la campanita de notificaciones de toda la comunidad.');
+            renderUserList('broadcast-announcements');
+        } catch (err) {
+            alert('Error al emitir comunicado: ' + (err.message || 'Error desconocido'));
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>🚀 Enviar a Toda la Comunidad</span>';
+            }
         }
     };
 });
