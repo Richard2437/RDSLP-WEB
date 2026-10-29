@@ -195,9 +195,19 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =====================================================
--- 7. VERIFICACIÓN FINAL
+-- 7. PERMISOS Y PRIVILEGIOS
+-- =====================================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;
+
+-- =====================================================
+-- 8. VERIFICACIÓN FINAL
 -- =====================================================
 SELECT 
     '✅ Base de datos RDSLP configurada exitosamente' AS resultado,
     (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('perfiles','posts','comments','likes')) AS tablas_creadas,
     '4 tablas esperadas: perfiles, posts, comments, likes' AS detalle;
+

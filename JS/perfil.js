@@ -50,8 +50,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('editName').value = name;
         document.getElementById('editEmail').value = email;
-        const roleDropdown = document.getElementById('editRole');
-        if (roleDropdown) roleDropdown.value = role;
+        const roleBadge = document.getElementById('displayUserRoleBadge');
+        if (roleBadge) {
+            roleBadge.textContent = roleNames[role] || 'Usuario';
+            roleBadge.className = 'user-role-badge ' + role;
+        }
         document.getElementById('editBio').value = currentUser.bio || '';
 
         // Stats
@@ -86,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const editName = document.getElementById('editName').value.trim();
         const editBio = document.getElementById('editBio')?.value.trim() || '';
-        const editRole = document.getElementById('editRole')?.value || currentUser.role || 'user';
         const currentPassword = document.getElementById('currentPassword').value;
         const newPassword = document.getElementById('newPassword').value;
         const confirmNewPassword = document.getElementById('confirmNewPassword').value;
@@ -98,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const updates = { name: editName, bio: editBio, role: editRole };
+        const updates = { name: editName, bio: editBio };
 
         if (currentPassword || newPassword || confirmNewPassword) {
             if (!currentPassword) {
@@ -127,21 +129,10 @@ document.addEventListener('DOMContentLoaded', function () {
             updates.password = newPassword;
         }
 
-        // Actualizar rol en Supabase si cambió
-        if (editRole && editRole !== currentUser.role) {
-            try {
-                if (window.rdslpSupabase && currentUser.id) {
-                    await window.rdslpSupabase.changeUserRole(currentUser.id, editRole);
-                }
-            } catch (err) {
-                console.warn('[RDSLP] Error al actualizar rol en Supabase:', err);
-            }
-        }
-
         const result = auth.updateProfile(updates);
 
         if (result.success) {
-            currentUser = { ...result.user, role: editRole };
+            currentUser = { ...result.user };
             localStorage.setItem('rdslp_user', JSON.stringify(currentUser));
             sessionStorage.setItem('rdslp_user', JSON.stringify(currentUser));
             document.getElementById('currentPassword').value = '';

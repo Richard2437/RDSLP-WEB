@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -146,12 +146,15 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="editRole">Rol en el Sistema (Supabase)</label>
-                                <select id="editRole" style="padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); width: 100%; font-size: 14px; outline: none; cursor: pointer;">
-                                    <option value="user">Usuario / Estudiante (user)</option>
-                                    <option value="moderator">Moderador de Comunidad (moderator)</option>
-                                    <option value="admin">Administrador del Sistema (admin)</option>
-                                </select>
+                                <label>Rol en el Sistema</label>
+                                <div class="role-readonly-box" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                        <span id="displayUserRoleBadge" class="user-role-badge user" style="font-size: 12px; font-weight: 700; text-transform: uppercase;">USUARIO</span>
+                                    </div>
+                                    <span style="font-size: 11px; color: var(--text-muted);">Asignado por Administrador</span>
+                                </div>
+                                <small style="color: var(--text-muted); display: block; margin-top: 5px;">Por seguridad, los roles no se pueden autoasignar; son administrados exclusivamente por los Administradores.</small>
                             </div>
 
                             <div class="form-group">

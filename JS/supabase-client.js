@@ -151,10 +151,14 @@
         localStorage.removeItem('rdslp_user');
         sessionStorage.removeItem('rdslp_user');
 
+        const origin = window.location.origin;
+        const redirectUrl = `${origin}/Static/login.html`;
+
         const { data, error } = await client.auth.signUp({
             email: email.trim(),
             password: password,
             options: {
+                emailRedirectTo: redirectUrl,
                 data: {
                     first_name: firstName.trim(),
                     last_name: lastName.trim(),
@@ -407,9 +411,15 @@
         }));
     }
 
-    // Cambiar rol de usuario en Supabase (Admin)
-    // Cambiar rol de usuario en Supabase (Admin o Usuario asignando)
+    // Cambiar rol de usuario en Supabase (Solo Administrador)
     async function changeUserRole(userId, newRole) {
+        // Validación estricta: solo administradores pueden cambiar roles
+        const raw = localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user');
+        const curUser = raw ? JSON.parse(raw) : null;
+        if (!curUser || curUser.role !== 'admin') {
+            throw new Error('Permiso denegado: solo los Administradores pueden cambiar roles de usuario.');
+        }
+
         const client = await getClient();
         const { data, error } = await client
             .from('perfiles')
