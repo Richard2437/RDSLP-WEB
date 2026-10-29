@@ -103,21 +103,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Configurar event listeners
     function setupEventListeners() {
-        // Toggle sidebar
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-        });
+        // Toggle sidebar (en desktop colapsa, en móvil cierra)
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', () => {
+                if (window.innerWidth <= 900) {
+                    if (typeof window.toggleMobileSidebar === 'function') {
+                        window.toggleMobileSidebar(false);
+                    } else {
+                        sidebar.classList.remove('mobile-open');
+                    }
+                } else {
+                    sidebar.classList.toggle('collapsed');
+                }
+            });
+        }
 
-        // Mobile menu
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('mobile-open');
-        });
+        // Mobile menu (asigna onclick coordinado con auth.js para evitar dobles eventos)
+        if (mobileMenuBtn) {
+            mobileMenuBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.toggleMobileSidebar === 'function') {
+                    window.toggleMobileSidebar();
+                } else {
+                    sidebar.classList.toggle('mobile-open');
+                }
+            };
+        }
 
         // Cerrar sidebar al hacer clic fuera en mobile
         document.addEventListener('click', (e) => {
             if (window.innerWidth <= 900) {
-                if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-                    sidebar.classList.remove('mobile-open');
+                if (mobileMenuBtn && mobileMenuBtn.contains(e.target)) return;
+                if (!sidebar.contains(e.target)) {
+                    if (typeof window.toggleMobileSidebar === 'function') {
+                        window.toggleMobileSidebar(false);
+                    } else {
+                        sidebar.classList.remove('mobile-open');
+                    }
                 }
             }
         });
@@ -132,7 +155,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 if (window.innerWidth <= 900) {
-                    sidebar.classList.remove('mobile-open');
+                    if (typeof window.toggleMobileSidebar === 'function') {
+                        window.toggleMobileSidebar(false);
+                    } else {
+                        sidebar.classList.remove('mobile-open');
+                    }
                 }
             });
         });

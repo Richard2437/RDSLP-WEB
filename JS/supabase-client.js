@@ -240,7 +240,7 @@
     // Iniciar sesión con Google OAuth
     async function signInWithGoogle() {
         const client = await getClient();
-        // Construir URL de redirección compatible con Vercel y localhost
+        // Construir URL de redirección usando el origen activo en producción (Vercel)
         const origin = window.location.origin;
         const redirectTo = `${origin}/Static/dashboard.html`;
 
@@ -291,18 +291,16 @@
             catch { return {}; }
         })();
 
-        // La tabla 'perfiles' de Supabase es la fuente de verdad absoluta.
-        // Si el rol fue cambiado/revocado en la base de datos, se aplica de inmediato.
+        // La tabla 'perfiles' de Supabase es la fuente de verdad absoluta en la nube.
+        // El rol viene 100% de la base de datos Supabase, sin depender de localStorage.
         let finalRole = 'user';
         if (profile && profile.rol) {
             finalRole = profile.rol;
         } else if (user.user_metadata?.role) {
             finalRole = user.user_metadata.role;
-        } else if (stored.email === user.email && stored.role) {
-            finalRole = stored.role;
         }
 
-        const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
+        const finalName = profile?.nombre || user.user_metadata?.name || user.user_metadata?.full_name || (stored.email === user.email ? stored.name : null) || user.email.split('@')[0];
 
         const userData = {
             id: user.id,
@@ -320,21 +318,14 @@
     }
 
     function syncUserSession(user, profile) {
-        const stored = (() => {
-            try { return JSON.parse(localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user') || '{}'); }
-            catch { return {}; }
-        })();
-
         let finalRole = 'user';
         if (profile && profile.rol) {
             finalRole = profile.rol;
         } else if (user.user_metadata?.role) {
             finalRole = user.user_metadata.role;
-        } else if (stored.email === user.email && stored.role) {
-            finalRole = stored.role;
         }
 
-        const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
+        const finalName = profile?.nombre || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
 
         const userData = {
             id: user.id,

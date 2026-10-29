@@ -92,10 +92,10 @@ class AuthManager {
 
     setupGlobalMobileMenu() {
         const setup = () => {
-            const sidebar = document.getElementById('sidebar') || document.querySelector('.sidebar');
+            const sidebar = document.querySelector('.sidebar') || document.getElementById('sidebar');
             if (!sidebar) return;
 
-            // 1. Overlay oscuro difuminado para móviles
+            // 1. Overlay oscuro de fondo para móvil
             let overlay = document.getElementById('sidebarMobileOverlay');
             if (!overlay) {
                 overlay = document.createElement('div');
@@ -104,9 +104,29 @@ class AuthManager {
                 document.body.appendChild(overlay);
             }
 
-            overlay.onclick = () => {
-                sidebar.classList.remove('mobile-open');
-                overlay.classList.remove('active');
+            // Función centralizada global para sincronizar sidebar y overlay sin colisiones
+            window.toggleMobileSidebar = function (forceState) {
+                const sidebarEl = document.querySelector('.sidebar') || document.getElementById('sidebar');
+                const overlayEl = document.getElementById('sidebarMobileOverlay');
+                if (!sidebarEl) return;
+
+                const willOpen = typeof forceState === 'boolean'
+                    ? forceState
+                    : !sidebarEl.classList.contains('mobile-open');
+
+                if (willOpen) {
+                    sidebarEl.classList.add('mobile-open');
+                    if (overlayEl) overlayEl.classList.add('active');
+                } else {
+                    sidebarEl.classList.remove('mobile-open');
+                    if (overlayEl) overlayEl.classList.remove('active');
+                }
+            };
+
+            overlay.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.toggleMobileSidebar(false);
             };
 
             // 2. Garantizar botón de menú hamburguesa (3 líneas) en el encabezado
@@ -135,32 +155,30 @@ class AuthManager {
                 }
             }
 
-            // 3. Vincular evento para abrir/cerrar barra lateral
-            if (mobileBtn && !mobileBtn._hasMobileListener) {
-                mobileBtn._hasMobileListener = true;
-                mobileBtn.addEventListener('click', (e) => {
+            // 3. Vincular evento ÚNICO en onclick (evita duplicidad y cancelaciones cruzadas)
+            if (mobileBtn) {
+                mobileBtn.onclick = (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    const isOpen = sidebar.classList.toggle('mobile-open');
-                    overlay.classList.toggle('active', isOpen);
-                });
+                    window.toggleMobileSidebar();
+                };
             }
 
             // Cerrar menú al tocar cualquier enlace de navegación en móvil
-            sidebar.querySelectorAll('.nav-link').forEach(link => {
+            sidebar.querySelectorAll('.nav-link, .logout-btn').forEach(link => {
                 link.addEventListener('click', () => {
-                    sidebar.classList.remove('mobile-open');
-                    overlay.classList.remove('active');
+                    if (window.innerWidth <= 900) {
+                        window.toggleMobileSidebar(false);
+                    }
                 });
             });
         };
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setup);
+            document.addEventListener('DOMContentLoaded', setup, { once: true });
         } else {
             setup();
         }
-        window.addEventListener('load', setup);
-        setTimeout(setup, 300);
     }
 
     async syncCurrentUser() {
@@ -182,18 +200,8 @@ class AuthManager {
 
     updateGlobalAdminUI() {
         const user = this.getCurrentUser();
-        
-        // Determinar rol con máxima prioridad al rol admin si existe guardado
-        let role = 'user';
-        if (user && user.role) {
-            role = user.role;
-        } else {
-            try {
-                const stored = JSON.parse(localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user') || '{}');
-                if (stored.role) role = stored.role;
-            } catch (e) {}
-        }
-
+        // Supabase es la fuente de verdad autoritativa para el rol del usuario
+        const role = (user && user.role) ? user.role : 'user';
         const isAdmin = (role === 'admin');
 
         // 1. Mostrar/ocultar elementos de administrador en el menú
