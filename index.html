@@ -57,20 +57,40 @@
 
     <script>
         async function routeUser() {
+            // 1. Redirección instantánea si ya hay sesión activa en caché (cero espera)
             try {
-                // Verificar si hay usuario activo en Supabase
-                const user = await window.rdslpSupabase.getCurrentUser();
-                if (user && !user.isBanned) {
-                    window.location.replace('Static/dashboard.html');
-                    return;
+                const cachedRaw = sessionStorage.getItem('rdslp_user') || localStorage.getItem('rdslp_user');
+                if (cachedRaw) {
+                    const cached = JSON.parse(cachedRaw);
+                    if (cached && !cached.isBanned) {
+                        window.location.replace('Static/dashboard.html');
+                        return;
+                    }
+                }
+            } catch (e) {}
+
+            // 2. Si no hay sesión local o está por verificar, consultar Supabase
+            try {
+                if (window.rdslpSupabase && typeof window.rdslpSupabase.getCurrentUser === 'function') {
+                    const user = await window.rdslpSupabase.getCurrentUser();
+                    if (user && !user.isBanned) {
+                        window.location.replace('Static/dashboard.html');
+                        return;
+                    }
                 }
             } catch (err) {
                 console.warn('[RDSLP] Redirección inicial:', err.message);
             }
+
+            // 3. Si no hay sesión válida, enviar a inicio de sesión
             window.location.replace('Static/login.html');
         }
 
-        document.addEventListener('DOMContentLoaded', routeUser);
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', routeUser);
+        } else {
+            routeUser();
+        }
     </script>
 </body>
 

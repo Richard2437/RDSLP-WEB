@@ -58,3 +58,6 @@ credentials/
 # Coverage y tests
 coverage/
 .nyc_output/
+
+.vercel
+.env*
