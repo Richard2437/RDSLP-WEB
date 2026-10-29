@@ -291,14 +291,16 @@
             catch { return {}; }
         })();
 
-        // Preservar rol admin/moderador si ya fue asignado
-        const isPrivileged = (stored.email === user.email && (stored.role === 'admin' || stored.role === 'moderator')) ||
-                             (profile?.rol === 'admin' || profile?.rol === 'moderator') ||
-                             (user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'moderator');
-
-        const finalRole = isPrivileged
-            ? (profile?.rol === 'admin' ? 'admin' : (stored.role || profile?.rol || user.user_metadata?.role || 'admin'))
-            : (profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user');
+        // La tabla 'perfiles' de Supabase es la fuente de verdad absoluta.
+        // Si el rol fue cambiado/revocado en la base de datos, se aplica de inmediato.
+        let finalRole = 'user';
+        if (profile && profile.rol) {
+            finalRole = profile.rol;
+        } else if (user.user_metadata?.role) {
+            finalRole = user.user_metadata.role;
+        } else if (stored.email === user.email && stored.role) {
+            finalRole = stored.role;
+        }
 
         const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
 
@@ -323,13 +325,14 @@
             catch { return {}; }
         })();
 
-        const isPrivileged = (stored.email === user.email && (stored.role === 'admin' || stored.role === 'moderator')) ||
-                             (profile?.rol === 'admin' || profile?.rol === 'moderator') ||
-                             (user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'moderator');
-
-        const finalRole = isPrivileged
-            ? (profile?.rol === 'admin' ? 'admin' : (stored.role || profile?.rol || user.user_metadata?.role || 'admin'))
-            : (profile?.rol || (stored.email === user.email ? stored.role : null) || user.user_metadata?.role || 'user');
+        let finalRole = 'user';
+        if (profile && profile.rol) {
+            finalRole = profile.rol;
+        } else if (user.user_metadata?.role) {
+            finalRole = user.user_metadata.role;
+        } else if (stored.email === user.email && stored.role) {
+            finalRole = stored.role;
+        }
 
         const finalName = profile?.nombre || (stored.email === user.email ? stored.name : null) || user.user_metadata?.name || user.user_metadata?.full_name || user.email.split('@')[0];
 

@@ -86,6 +86,81 @@ class AuthManager {
         setTimeout(updateAll, 100);
         setTimeout(updateAll, 500);
         setTimeout(updateAll, 1500);
+
+        this.setupGlobalMobileMenu();
+    }
+
+    setupGlobalMobileMenu() {
+        const setup = () => {
+            const sidebar = document.getElementById('sidebar') || document.querySelector('.sidebar');
+            if (!sidebar) return;
+
+            // 1. Overlay oscuro difuminado para móviles
+            let overlay = document.getElementById('sidebarMobileOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'sidebarMobileOverlay';
+                overlay.className = 'sidebar-mobile-overlay';
+                document.body.appendChild(overlay);
+            }
+
+            overlay.onclick = () => {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            };
+
+            // 2. Garantizar botón de menú hamburguesa (3 líneas) en el encabezado
+            const headerLeft = document.querySelector('.main-header .header-left');
+            const mainHeader = document.querySelector('.main-header');
+
+            let mobileBtn = document.getElementById('mobileMenuBtn');
+            if (!mobileBtn && (headerLeft || mainHeader)) {
+                mobileBtn = document.createElement('button');
+                mobileBtn.type = 'button';
+                mobileBtn.id = 'mobileMenuBtn';
+                mobileBtn.className = 'mobile-menu-btn';
+                mobileBtn.setAttribute('aria-label', 'Abrir menú de navegación');
+                mobileBtn.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                `;
+
+                if (headerLeft) {
+                    headerLeft.insertBefore(mobileBtn, headerLeft.firstChild);
+                } else if (mainHeader) {
+                    mainHeader.insertBefore(mobileBtn, mainHeader.firstChild);
+                }
+            }
+
+            // 3. Vincular evento para abrir/cerrar barra lateral
+            if (mobileBtn && !mobileBtn._hasMobileListener) {
+                mobileBtn._hasMobileListener = true;
+                mobileBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = sidebar.classList.toggle('mobile-open');
+                    overlay.classList.toggle('active', isOpen);
+                });
+            }
+
+            // Cerrar menú al tocar cualquier enlace de navegación en móvil
+            sidebar.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    sidebar.classList.remove('mobile-open');
+                    overlay.classList.remove('active');
+                });
+            });
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setup);
+        } else {
+            setup();
+        }
+        window.addEventListener('load', setup);
+        setTimeout(setup, 300);
     }
 
     async syncCurrentUser() {

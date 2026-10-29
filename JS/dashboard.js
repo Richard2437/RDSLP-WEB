@@ -1121,17 +1121,21 @@ db.usuarios.<span class="function">updateOne</span>(
 
             return `
                 <div class="user-item" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border-color); transition: background 0.2s; flex-wrap: wrap; gap: 12px;">
-                    <div class="user-info" style="display: flex; align-items: center; gap: 14px; min-width: 240px;">
+                    <div class="user-info" style="display: flex; align-items: center; gap: 14px; min-width: 240px; cursor: pointer;" onclick="window.openUserProfileModal('${u.id}', '${escapeHtml(u.name)}')" title="Ver perfil de ${escapeHtml(u.name)}">
                         <div class="user-avatar-small" style="width: 42px; height: 42px; background: var(--gradient-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; flex-shrink: 0;">${initial}</div>
                         <div>
                             <div class="user-name" style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                                <span>${escapeHtml(u.name)}</span>
+                                <span style="text-decoration: underline; text-underline-offset: 3px;">${escapeHtml(u.name)}</span>
                                 ${isSelf ? '<span style="color: #818cf8; font-size: 11.5px; font-weight: normal;">(Tú)</span>' : ''}
                             </div>
                             <div class="user-email" style="font-size: 13px; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(u.email)}</div>
                         </div>
                     </div>
                     <div class="user-actions" style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                        <button type="button" onclick="window.openUserProfileModal('${u.id}', '${escapeHtml(u.name)}')" style="padding: 6px 12px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.35); cursor: pointer; font-weight: 500; font-size: 13px; display: inline-flex; align-items: center; gap: 4px;" title="Ver perfil completo y moderación">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            <span>Perfil</span>
+                        </button>
                         ${statusBadge}
                         ${roleBadge}
                         ${roleSelect}
@@ -1209,14 +1213,257 @@ db.usuarios.<span class="function">updateOne</span>(
         div.textContent = text;
         return div.innerHTML;
     }
-// Refresh admin user list when users are added/updated
-window.addEventListener('userListUpdated', () => {
-    if (currentUser && currentUser.role === 'admin') {
-        const activeTab = document.querySelector('.admin-tab.active');
-        renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
-        const users = auth.getAllUsers();
-        document.getElementById('totalUsers').textContent = users.length;
+
+    // =====================================================
+    // MODAL DE PERFIL DE USUARIO DESDE PANEL ADMIN
+    // =====================================================
+    let currentProfileTarget = null;
+
+    window.openUserProfileModal = function (targetId, targetName) {
+        if (!targetId && !targetName) return;
+        const targetUserId = String(targetId || targetName);
+        const displayName = targetName || 'Usuario';
+
+        let targetRole = 'usuario';
+        if (String(targetId) === '1' || displayName.toLowerCase().includes('admin')) targetRole = 'admin';
+        else if (String(targetId) === '2' || displayName.toLowerCase().includes('moderador')) targetRole = 'moderator';
+
+        try {
+            const allUsers = auth.getAllUsers ? auth.getAllUsers() : [];
+            const found = allUsers.find(u => String(u.id) === targetUserId || u.name === displayName || u.email === targetUserId);
+            if (found && found.role) targetRole = found.role;
+        } catch (e) {}
+
+        currentProfileTarget = { id: targetUserId, name: displayName, role: targetRole };
+
+        const modal = document.getElementById('userProfileModal');
+        const avatarEl = document.getElementById('modalUserAvatar');
+        const nameEl = document.getElementById('modalUserName');
+        const handleEl = document.getElementById('modalUserHandle');
+        const badgeEl = document.getElementById('modalUserBadge');
+        const socialActionsEl = document.getElementById('modalSocialActions');
+        const statFollowersEl = document.getElementById('modalStatFollowers');
+        const statFollowingEl = document.getElementById('modalStatFollowing');
+        const statPostsEl = document.getElementById('modalStatPosts');
+        const statMutualWrap = document.getElementById('modalStatMutualWrap');
+        const adminTab = document.getElementById('modalAdminTab');
+
+        if (!modal) return;
+
+        const initial = (displayName.charAt(0) || 'U').toUpperCase();
+        if (avatarEl) avatarEl.textContent = initial;
+        if (nameEl) nameEl.textContent = displayName;
+        if (handleEl) handleEl.textContent = `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
+
+        if (badgeEl) {
+            badgeEl.textContent = targetRole === 'admin' ? 'ADMINISTRADOR' : (targetRole === 'moderator' ? 'MODERADOR' : 'USUARIO');
+            badgeEl.className = 'user-role-badge ' + (targetRole === 'admin' ? 'admin' : (targetRole === 'moderator' ? 'moderator' : ''));
+        }
+
+        const mgr = window.SocialModerationManager;
+        const followersCount = mgr ? mgr.getFollowersCount(targetUserId) : 0;
+        const followingCount = mgr ? mgr.getFollowingCount(targetUserId) : 0;
+
+        const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
+        const userPosts = posts.filter(p => String(p.authorId) === targetUserId || p.authorName === displayName);
+
+        if (statFollowersEl) statFollowersEl.textContent = followersCount;
+        if (statFollowingEl) statFollowingEl.textContent = followingCount;
+        if (statPostsEl) statPostsEl.textContent = userPosts.length;
+
+        const isSelf = currentUser && (String(currentUser.id) === targetUserId || currentUser.name === displayName);
+        const isMutual = currentUser && mgr && !isSelf ? mgr.isMutual(currentUser.id, targetUserId) : false;
+
+        if (statMutualWrap) {
+            statMutualWrap.style.display = isMutual ? 'inline-flex' : 'none';
+        }
+
+        if (socialActionsEl) {
+            socialActionsEl.innerHTML = `
+                <a href="muro.html?userId=${encodeURIComponent(targetUserId)}&userName=${encodeURIComponent(displayName)}" class="btn-profile-follow" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    Ver en el Muro
+                </a>
+            `;
+        }
+
+        // Renderizar publicaciones del usuario
+        const userPostsListEl = document.getElementById('modalUserPostsList');
+        if (userPostsListEl) {
+            if (userPosts.length === 0) {
+                userPostsListEl.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 8px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line></svg>
+                        <p>Este usuario no tiene publicaciones en el muro aún.</p>
+                    </div>
+                `;
+            } else {
+                userPostsListEl.innerHTML = userPosts.map(p => `
+                    <div class="user-profile-post-card">
+                        <div class="upp-header">
+                            <span class="upp-type ${p.type}">${(p.type || 'post').toUpperCase()}</span>
+                            <span class="upp-time">${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''}</span>
+                        </div>
+                        <div class="upp-content">
+                            <p>${escapeHtml(p.content)}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Pestaña Admin / Moderación
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.role === 'moderator');
+        if (adminTab) {
+            adminTab.style.display = (isAdmin && !isSelf) ? 'inline-flex' : 'none';
+        }
+
+        switchDashboardProfileTab('posts');
+
+        if (isAdmin && !isSelf) {
+            renderDashboardSanctions(targetUserId);
+        }
+
+        modal.classList.add('active');
+    };
+
+    function switchDashboardProfileTab(tabName) {
+        document.querySelectorAll('#userProfileModal .profile-modal-tabs .p-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName || (tabName === 'admin' && btn.id === 'modalAdminTab'));
+        });
+        const postsTab = document.getElementById('tabPostsContent');
+        const aboutTab = document.getElementById('tabAboutContent');
+        const adminTab = document.getElementById('tabAdminContent');
+
+        if (postsTab) postsTab.style.display = tabName === 'posts' ? 'block' : 'none';
+        if (aboutTab) aboutTab.style.display = tabName === 'about' ? 'block' : 'none';
+        if (adminTab) adminTab.style.display = tabName === 'admin' ? 'block' : 'none';
     }
-});
+
+    document.querySelectorAll('#userProfileModal .profile-modal-tabs .p-tab').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const tab = this.dataset.tab || (this.id === 'modalAdminTab' ? 'admin' : 'posts');
+            switchDashboardProfileTab(tab);
+        });
+    });
+
+    const closeProfileBtn = document.getElementById('closeProfileModal');
+    if (closeProfileBtn) {
+        closeProfileBtn.addEventListener('click', () => {
+            const m = document.getElementById('userProfileModal');
+            if (m) m.classList.remove('active');
+        });
+    }
+
+    function renderDashboardSanctions(userId) {
+        const listEl = document.getElementById('modalSanctionsHistory');
+        if (!listEl || !window.SocialModerationManager) return;
+        const status = window.SocialModerationManager.getSanctionStatus(userId);
+
+        let html = '';
+        if (status.isBanned) {
+            html += `
+                <div class="mod-status-badge ban">
+                    ⛔ <strong>Baneado:</strong> ${status.banExpires ? 'Hasta ' + new Date(status.banExpires).toLocaleDateString() : 'Permanente'} - ${escapeHtml(status.banReason)}
+                </div>
+            `;
+        }
+        if (status.isMuted) {
+            html += `
+                <div class="mod-status-badge mute">
+                    🔇 <strong>Silenciado:</strong> ${status.muteExpires ? 'Hasta ' + new Date(status.muteExpires).toLocaleDateString() : 'Permanente'} - ${escapeHtml(status.muteReason)}
+                </div>
+            `;
+        }
+
+        if (status.warnings && status.warnings.length > 0) {
+            html += `<div style="margin-top: 10px; font-size: 13px; font-weight: 600; color: #f59e0b;">⚠️ Avisos Disciplinarios (${status.warnings.length} Strikes):</div>`;
+            html += status.warnings.map(w => `
+                <div class="mod-warning-item">
+                    <div style="font-weight: 600; color: #fbbf24; font-size: 13px;">${escapeHtml(w.reason)}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin: 3px 0;">${escapeHtml(w.note || 'Sin detalles adicionales')}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Emitido por ${escapeHtml(w.issuedBy)} · ${new Date(w.date).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
+
+        if (!html) {
+            html = '<p style="color: var(--text-muted); font-size: 13px;">Este usuario tiene un expediente limpio, sin sanciones ni avisos.</p>';
+        }
+
+        listEl.innerHTML = html;
+    }
+
+    window.applyMute = function (days) {
+        if (!currentProfileTarget || !window.SocialModerationManager) return;
+        const durationText = days === 0 ? 'de forma permanente' : `por ${days} día(s)`;
+        if (!confirm(`¿Confirmas silenciar a ${currentProfileTarget.name} ${durationText}? No podrá publicar comentarios ni enviar mensajes.`)) return;
+
+        const res = window.SocialModerationManager.muteUser(currentUser, currentProfileTarget.id, days);
+        if (res.success) {
+            alert('✓ Silencio aplicado con éxito.');
+            renderDashboardSanctions(currentProfileTarget.id);
+        } else {
+            alert(res.message || 'Error al aplicar sanción.');
+        }
+    };
+
+    window.applyBan = function (days) {
+        if (!currentProfileTarget || !window.SocialModerationManager) return;
+        const durationText = days === 0 ? 'de forma permanente' : `por ${days} día(s)`;
+        if (!confirm(`¿Confirmas suspender / banear a ${currentProfileTarget.name} ${durationText}?`)) return;
+
+        const res = window.SocialModerationManager.banUser(currentUser, currentProfileTarget.id, days);
+        if (res.success) {
+            alert('✓ Baneo aplicado con éxito.');
+            renderDashboardSanctions(currentProfileTarget.id);
+        } else {
+            alert(res.message || 'Error al aplicar baneo.');
+        }
+    };
+
+    window.liftSanction = function () {
+        if (!currentProfileTarget || !window.SocialModerationManager) return;
+        if (!confirm(`¿Deseas levantar todas las sanciones y reactivar a ${currentProfileTarget.name}?`)) return;
+
+        const res = window.SocialModerationManager.liftSanctions(currentUser, currentProfileTarget.id);
+        if (res.success) {
+            alert(`✓ Todas las sanciones de ${currentProfileTarget.name} han sido levantadas.`);
+            renderDashboardSanctions(currentProfileTarget.id);
+        } else {
+            alert(res.message || 'Error al levantar sanciones.');
+        }
+    };
+
+    const btnIssueWarning = document.getElementById('btnIssueWarning');
+    if (btnIssueWarning) {
+        btnIssueWarning.addEventListener('click', function () {
+            if (!currentProfileTarget || !window.SocialModerationManager) return;
+            const reasonEl = document.getElementById('warnReasonSelect');
+            const noteEl = document.getElementById('warnNoteInput');
+
+            const reason = reasonEl ? reasonEl.value : 'Infracción de normas';
+            const note = noteEl ? noteEl.value.trim() : '';
+
+            const res = window.SocialModerationManager.issueWarning(currentUser, currentProfileTarget.id, currentProfileTarget.name, reason, note);
+            if (res.success) {
+                alert(`✓ Aviso disciplinario (Strike #${res.count}) emitido contra ${currentProfileTarget.name}.`);
+                if (noteEl) noteEl.value = '';
+                renderDashboardSanctions(currentProfileTarget.id);
+            } else {
+                alert(res.message || 'Error al emitir aviso.');
+            }
+        });
+    }
+
+    // Refresh admin user list when users are added/updated
+    window.addEventListener('userListUpdated', () => {
+        if (currentUser && currentUser.role === 'admin') {
+            const activeTab = document.querySelector('.admin-tab.active');
+            renderUserList(activeTab ? activeTab.dataset.tab : 'active-users');
+            const users = auth.getAllUsers();
+            document.getElementById('totalUsers').textContent = users.length;
+        }
+    });
 });
 

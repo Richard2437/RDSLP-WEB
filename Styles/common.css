@@ -448,4 +448,82 @@ body {
 }
 
 /* Estilos legales compartidos (importados desde archivo centralizado) */
-@import url('./common-legal.css');
+@import url('./common-legal.css');
+
+/* =====================================================
+   MENÚ MÓVIL UNIVERSAL (3 LÍNEAS SUPERIORES IZQUIERDAS)
+===================================================== */
+.mobile-menu-btn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-right: 10px;
+}
+
+.mobile-menu-btn:hover {
+    background: var(--bg-card);
+    color: var(--accent-primary);
+}
+
+.sidebar-mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar-mobile-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (max-width: 900px) {
+    .mobile-menu-btn {
+        display: inline-flex !important;
+    }
+
+    .main-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 500 !important;
+        background: var(--bg-secondary) !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 16px !important;
+    }
+
+    .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        z-index: 999 !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0) !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+    }
+}
+
