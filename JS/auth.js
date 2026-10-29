@@ -50,42 +50,66 @@ const PERMISSIONS = {
 // Auth Manager conectado con Supabase
 class AuthManager {
     constructor() {
-        this.currentUser = null;
+        this.currentUser = this.getCachedUser();
         this.cachedUsers = [];
+        this.initRootClass();
         this.init();
     }
 
-    init() {
-        this.getCurrentUser();
-        this.syncCurrentUser();
+    getCachedUser() {
+        try {
+            const raw = sessionStorage.getItem('rdslp_user') || localStorage.getItem('rdslp_user');
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            return null;
+        }
+    }
 
-        const updateAll = () => this.updateGlobalAdminUI();
+    initRootClass() {
+        if (typeof document !== 'undefined' && document.documentElement) {
+            const user = this.currentUser;
+            const role = (user && user.role) ? user.role : 'user';
+            document.documentElement.classList.remove('role-admin', 'role-moderator', 'role-user');
+            document.documentElement.classList.add(role === 'admin' ? 'role-admin' : (role === 'moderator' ? 'role-moderator' : 'role-user'));
+        }
+    }
+
+    init() {
+        // Renderizado visual instantáneo con datos en caché (cero parpadeo)
+        this.updateGlobalAdminUI();
+        this.syncCurrentUser();
 
         window.addEventListener('rdslp_user_updated', (e) => {
             if (e.detail) {
-                this.currentUser = e.detail;
-                this.updateGlobalAdminUI();
+                const prev = this.currentUser;
+                const next = e.detail;
+                const hasChanged = !prev || prev.role !== next.role || prev.name !== next.name || prev.id !== next.id;
+                this.currentUser = next;
+                if (hasChanged) {
+                    this.initRootClass();
+                    this.updateGlobalAdminUI();
+                }
             }
         });
 
         window.addEventListener('userSynced', (e) => {
             if (e.detail) {
-                this.currentUser = e.detail;
-                this.updateGlobalAdminUI();
+                const prev = this.currentUser;
+                const next = e.detail;
+                const hasChanged = !prev || prev.role !== next.role || prev.name !== next.name || prev.id !== next.id;
+                this.currentUser = next;
+                if (hasChanged) {
+                    this.initRootClass();
+                    this.updateGlobalAdminUI();
+                }
             }
         });
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', updateAll);
+            document.addEventListener('DOMContentLoaded', () => this.updateGlobalAdminUI(), { once: true });
         } else {
-            updateAll();
+            this.updateGlobalAdminUI();
         }
-
-        window.addEventListener('load', updateAll);
-        // Reintentos automáticos rápidos para garantizar renderizado visual instantáneo
-        setTimeout(updateAll, 100);
-        setTimeout(updateAll, 500);
-        setTimeout(updateAll, 1500);
 
         this.setupGlobalMobileMenu();
     }
@@ -186,11 +210,18 @@ class AuthManager {
             try {
                 const user = await window.rdslpSupabase.getCurrentUser();
                 if (user) {
+                    const prev = this.currentUser;
+                    const hasChanged = !prev || prev.role !== user.role || prev.name !== user.name || prev.id !== user.id;
+
                     this.currentUser = user;
                     localStorage.setItem('rdslp_user', JSON.stringify(user));
                     sessionStorage.setItem('rdslp_user', JSON.stringify(user));
-                    this.updateGlobalAdminUI();
-                    window.dispatchEvent(new CustomEvent('userSynced', { detail: user }));
+
+                    if (hasChanged) {
+                        this.initRootClass();
+                        this.updateGlobalAdminUI();
+                        window.dispatchEvent(new CustomEvent('userSynced', { detail: user }));
+                    }
                 }
             } catch (err) {
                 console.warn('[RDSLP] Sincronización de usuario Supabase:', err.message);
@@ -200,9 +231,14 @@ class AuthManager {
 
     updateGlobalAdminUI() {
         const user = this.getCurrentUser();
-        // Supabase es la fuente de verdad autoritativa para el rol del usuario
         const role = (user && user.role) ? user.role : 'user';
         const isAdmin = (role === 'admin');
+
+        // Sincronizar clase en el elemento raíz para CSS instantáneo
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.classList.remove('role-admin', 'role-moderator', 'role-user');
+            document.documentElement.classList.add(role === 'admin' ? 'role-admin' : (role === 'moderator' ? 'role-moderator' : 'role-user'));
+        }
 
         // 1. Mostrar/ocultar elementos de administrador en el menú
         document.querySelectorAll('.admin-only, #adminNavItem, [data-admin-only]').forEach(el => {
@@ -217,21 +253,23 @@ class AuthManager {
         };
         const roleText = roleNames[role] || 'USUARIO';
 
-        const footers = document.querySelectorAll('.sidebar-footer');
-        footers.forEach(footer => {
-            let badge = footer.querySelector('#userRoleBadge, .user-role-badge');
-            if (!badge) {
-                badge = document.createElement('div');
-                badge.id = 'userRoleBadge';
-                badge.className = 'user-role-badge ' + role;
-                badge.textContent = roleText;
-                footer.insertBefore(badge, footer.firstChild);
-            } else {
-                badge.textContent = roleText;
-                badge.className = 'user-role-badge ' + role;
-                badge.style.display = 'inline-block';
-            }
+        const badges = document.querySelectorAll('#userRoleBadge, .user-role-badge, .sidebar-footer .user-role-badge');
+        badges.forEach(badge => {
+            if (badge.textContent !== roleText) badge.textContent = roleText;
+            badge.className = 'user-role-badge ' + role;
+            badge.style.display = 'inline-block';
         });
+
+        // 3. Sincronizar nombre y avatar de cabecera si están presentes
+        if (user && user.name) {
+            const initial = user.name.charAt(0).toUpperCase();
+            document.querySelectorAll('#userAvatar, .main-header #userAvatar').forEach(el => {
+                if (el.textContent !== initial) el.textContent = initial;
+            });
+            document.querySelectorAll('#userName, .main-header #userName').forEach(el => {
+                if (el.textContent !== user.name) el.textContent = user.name;
+            });
+        }
     }
 
     // Obtener todos los usuarios (desde Supabase si está disponible)

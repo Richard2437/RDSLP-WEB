@@ -22,9 +22,17 @@ document.addEventListener('DOMContentLoaded', function () {
         loadFeed();
         setupEventListeners();
 
-        // Escuchar sincronización con Supabase para actualizar rol y permisos en vivo
+        // Escuchar sincronización con Supabase para actualizar rol y permisos en vivo (con detección de cambios para evitar parpadeo del feed)
         const handleUserUpdate = (e) => {
-            currentUser = e.detail || auth.getCurrentUser();
+            const updated = e.detail || auth.getCurrentUser();
+            if (currentUser && updated &&
+                currentUser.id === updated.id &&
+                currentUser.role === updated.role &&
+                currentUser.name === updated.name &&
+                currentUser.avatar === updated.avatar) {
+                return; // Evita re-render y parpadeo innecesario si los datos no cambiaron
+            }
+            currentUser = updated;
             loadUserData();
             loadFeed();
         };

@@ -451,6 +451,64 @@ body {
 @import url('./common-legal.css');
 
 /* =====================================================
+   PREVENCIÓN DE PARPADEO Y CONTROL DE ESTADO INSTANTÁNEO
+===================================================== */
+html.role-admin .admin-only,
+html.role-admin #adminNavItem,
+html.role-admin [data-admin-only] {
+    display: block !important;
+}
+
+html:not(.role-admin) .admin-only,
+html:not(.role-admin) #adminNavItem,
+html:not(.role-admin) [data-admin-only] {
+    display: none !important;
+}
+
+.user-role-badge {
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    letter-spacing: 0.5px;
+    display: inline-block;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Fallback instantáneo para evitar parpadeo de texto antes de la carga de JS */
+html.role-admin #userRoleBadge:empty::after,
+html.role-admin .user-role-badge:empty::after {
+    content: "ADMINISTRADOR";
+}
+html.role-moderator #userRoleBadge:empty::after,
+html.role-moderator .user-role-badge:empty::after {
+    content: "MODERADOR";
+}
+html.role-user #userRoleBadge:empty::after,
+html:not(.role-admin):not(.role-moderator) #userRoleBadge:empty::after {
+    content: "USUARIO";
+}
+
+html.role-admin .user-role-badge,
+.user-role-badge.admin {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #ef4444 !important;
+}
+
+html.role-moderator .user-role-badge,
+.user-role-badge.moderator {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #f59e0b !important;
+}
+
+html.role-user .user-role-badge,
+.user-role-badge.user {
+    background: rgba(99, 102, 241, 0.2) !important;
+    color: #818cf8 !important;
+}
+
+/* =====================================================
    ESTILOS DE LOGO GLOBAL (SIDEBAR)
 ===================================================== */
 .logo {

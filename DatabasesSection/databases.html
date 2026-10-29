@@ -6,7 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="RDSLP - Catálogo y Comunidad de Bases de Datos.">
     <title>Bases de Datos | RDSLP</title>
+    <script>
+        (function(){
+            try {
+                var raw = sessionStorage.getItem('rdslp_user') || localStorage.getItem('rdslp_user');
+                var u = raw ? JSON.parse(raw) : null;
+                var r = (u && u.role) ? u.role.toLowerCase() : 'user';
+                var root = document.documentElement;
+                if (r === 'admin' || r === 'administrador') {
+                    root.classList.add('role-admin');
+                } else if (r === 'moderator' || r === 'moderador') {
+                    root.classList.add('role-moderator');
+                } else {
+                    root.classList.add('role-user');
+                }
+            } catch(e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="../Styles/dashboard.css">
+    <link rel="stylesheet" href="../Styles/common.css">
     <link rel="stylesheet" href="../DatabasesSection_css/databases.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -111,7 +129,7 @@
             </ul>
         </nav>
         <div class="sidebar-footer">
-            <div class="user-role-badge" id="userRoleBadge">Usuario</div>
+            <div class="user-role-badge" id="userRoleBadge"></div>
             <button class="logout-btn" id="logoutBtn">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

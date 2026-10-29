@@ -46,9 +46,13 @@ document.addEventListener('DOMContentLoaded', function () {
         updateProfileSection();
         setupRoleBasedUI();
 
-        // Escuchar actualización de usuario en vivo
+        // Escuchar actualización de usuario en vivo (solo si hay cambios reales para evitar parpadeos)
         const handleUserUpdate = (e) => {
-            currentUser = e.detail || auth.getCurrentUser();
+            const updated = e.detail || auth.getCurrentUser();
+            if (updated && currentUser && updated.role === currentUser.role && updated.name === currentUser.name && updated.id === currentUser.id) {
+                return;
+            }
+            currentUser = updated;
             loadUserData();
             setupRoleBasedUI();
         };
@@ -78,17 +82,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!currentUser) return;
 
         const initial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
-        userAvatar.textContent = initial;
-        userName.textContent = currentUser.name || 'Usuario';
+        if (userAvatar && userAvatar.textContent !== initial) userAvatar.textContent = initial;
+        if (userName && userName.textContent !== currentUser.name) userName.textContent = currentUser.name || 'Usuario';
 
-        // Badge de rol
+        // Badge de rol coordinado en mayúsculas (idéntico a auth.js para cero saltos)
         const roleNames = {
-            'admin': 'Administrador',
-            'moderator': 'Moderador',
-            'user': 'Usuario'
+            'admin': 'ADMINISTRADOR',
+            'moderator': 'MODERADOR',
+            'user': 'USUARIO'
         };
-        userRoleBadge.textContent = roleNames[currentUser.role] || 'Usuario';
-        userRoleBadge.className = 'user-role-badge ' + currentUser.role;
+        const roleText = roleNames[currentUser.role] || 'USUARIO';
+        if (userRoleBadge) {
+            if (userRoleBadge.textContent !== roleText) userRoleBadge.textContent = roleText;
+            userRoleBadge.className = 'user-role-badge ' + (currentUser.role || 'user');
+        }
     }
 
     // Configurar UI basada en rol
@@ -96,8 +103,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!currentUser) return;
 
         // Mostrar panel de admin solo para admins
-        if (currentUser.role === 'admin' && adminNavItem) {
-            adminNavItem.style.display = 'block';
+        const isAdmin = currentUser.role === 'admin';
+        if (adminNavItem) {
+            adminNavItem.style.display = isAdmin ? 'block' : 'none';
         }
     }
 
@@ -961,24 +969,29 @@ db.usuarios.<span class="function">updateOne</span>(
         document.getElementById('editBio').value = currentUser.bio || '';
     }
 
+    let adminTabsInitialized = false;
+
     async function loadAdminPanel() {
-        // Tabs logic
-        const tabs = document.querySelectorAll('.admin-tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => {
-                    t.classList.remove('active');
-                    t.style.color = 'var(--text-secondary)';
-                    t.style.borderBottom = '2px solid transparent';
-                    t.style.fontWeight = '500';
+        // Tabs logic (inicializar solo una vez para evitar múltiples listeners al navegar)
+        if (!adminTabsInitialized) {
+            const tabs = document.querySelectorAll('.admin-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => {
+                        t.classList.remove('active');
+                        t.style.color = 'var(--text-secondary)';
+                        t.style.borderBottom = '2px solid transparent';
+                        t.style.fontWeight = '500';
+                    });
+                    tab.classList.add('active');
+                    tab.style.color = 'var(--text-primary)';
+                    tab.style.borderBottom = '2px solid var(--accent-primary)';
+                    tab.style.fontWeight = '600';
+                    renderUserList(tab.dataset.tab);
                 });
-                tab.classList.add('active');
-                tab.style.color = 'var(--text-primary)';
-                tab.style.borderBottom = '2px solid var(--accent-primary)';
-                tab.style.fontWeight = '600';
-                renderUserList(tab.dataset.tab);
             });
-        });
+            adminTabsInitialized = true;
+        }
 
         // Initial render: Todos los usuarios registrados por defecto
         await renderUserList('all-users');
