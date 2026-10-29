@@ -124,7 +124,63 @@ CREATE POLICY "likes_delete_authenticated" ON public.likes
     FOR DELETE TO anon, authenticated USING (true);
 
 -- =====================================================
--- 5. TRIGGER: Sincronizar auth.users → perfiles
+-- 5. TABLA: mensajes (chat global y salas de eventos)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.mensajes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    chat_id TEXT NOT NULL DEFAULT 'general',
+    text TEXT NOT NULL,
+    image TEXT,
+    author_id TEXT,
+    author_name TEXT NOT NULL DEFAULT 'Usuario',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.mensajes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "mensajes_select_public" ON public.mensajes;
+CREATE POLICY "mensajes_select_public" ON public.mensajes FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "mensajes_insert_public" ON public.mensajes;
+CREATE POLICY "mensajes_insert_public" ON public.mensajes FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "mensajes_delete_public" ON public.mensajes;
+CREATE POLICY "mensajes_delete_public" ON public.mensajes FOR DELETE TO anon, authenticated USING (true);
+
+-- =====================================================
+-- 6. TABLA: comunidades (salas públicas, privadas y grupos)
+-- =====================================================
+CREATE TABLE IF NOT EXISTS public.comunidades (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    organizer TEXT,
+    organizer_name TEXT DEFAULT 'Anónimo',
+    category TEXT DEFAULT 'general',
+    access_type TEXT DEFAULT 'public',
+    invite_code TEXT,
+    max_participants INT DEFAULT 20,
+    participants JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.comunidades ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "comunidades_select_public" ON public.comunidades;
+CREATE POLICY "comunidades_select_public" ON public.comunidades FOR SELECT TO anon, authenticated USING (true);
+
+DROP POLICY IF EXISTS "comunidades_insert_public" ON public.comunidades;
+CREATE POLICY "comunidades_insert_public" ON public.comunidades FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "comunidades_update_public" ON public.comunidades;
+CREATE POLICY "comunidades_update_public" ON public.comunidades FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "comunidades_delete_public" ON public.comunidades;
+CREATE POLICY "comunidades_delete_public" ON public.comunidades FOR DELETE TO anon, authenticated USING (true);
+
+-- =====================================================
+-- 7. TRIGGER: Sincronizar auth.users → perfiles
 -- =====================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$

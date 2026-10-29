@@ -45,8 +45,13 @@
             };
         }
 
+        // Si DEFAULT_CONFIG tiene credenciales públicas válidas, usarlas de inmediato para rendimiento óptimo
+        if (DEFAULT_CONFIG.supabaseUrl && DEFAULT_CONFIG.supabaseAnonKey) {
+            return DEFAULT_CONFIG;
+        }
+
         try {
-            const res = await fetch('/api/config', { signal: AbortSignal.timeout(5000) });
+            const res = await fetch('/api/config', { signal: AbortSignal.timeout(1000) });
             if (res.ok) {
                 const data = await res.json();
                 if (data.supabaseUrl && data.supabaseAnonKey) {
@@ -55,11 +60,6 @@
             }
         } catch (err) {
             console.warn('[RDSLP] /api/config no disponible:', err.message);
-        }
-
-        // Si DEFAULT_CONFIG tiene valores (desarrollo local), usarlos
-        if (DEFAULT_CONFIG.supabaseUrl && DEFAULT_CONFIG.supabaseAnonKey) {
-            return DEFAULT_CONFIG;
         }
 
         throw new Error(
@@ -407,10 +407,11 @@
 
     // Cambiar rol de usuario en Supabase (Solo Administrador)
     async function changeUserRole(userId, newRole) {
-        // Validación estricta: solo administradores pueden cambiar roles
+        // Validación estricta con soporte para 'admin' y 'administrador'
         const raw = localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user');
         const curUser = raw ? JSON.parse(raw) : null;
-        if (!curUser || curUser.role !== 'admin') {
+        const curRole = (curUser && curUser.role) ? String(curUser.role).toLowerCase().trim() : '';
+        if (curRole !== 'admin' && curRole !== 'administrador') {
             throw new Error('Permiso denegado: solo los Administradores pueden cambiar roles de usuario.');
         }
 
@@ -452,6 +453,371 @@
         return await changeUserRole(userId, newRole);
     }
 
+    // =====================================================
+    // MÉTODOS EN LA NUBE PARA MULTI-USUARIO REAL (SIN LOCALSTORAGE AISLADO)
+    // =====================================================
+
+    // 1. PUBLICACIONES DEL MURO
+    async function fetchCloudPosts() {
+        try {
+            const client = await getClient();
+            const { data, error } = await client
+                .from('posts')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            // Filtrar solo las publicaciones reales del muro (excluir chats y comunidades guardadas con prefijos)
+            const muroPosts = (data || []).filter(p => !p.title?.startsWith('__CHAT__') && !p.title?.startsWith('__COMMUNITY__'));
+
+            return muroPosts.map(p => {
+                let parsed = {};
+                try {
+                    parsed = JSON.parse(p.content);
+                } catch {
+                    parsed = { text: p.content, type: 'general' };
+                }
+
+                return {
+                    id: p.id,
+                    cloudId: p.id,
+                    authorId: p.author_id || parsed.authorId || null,
+                    authorName: p.author_name || parsed.authorName || 'Usuario',
+                    type: parsed.type || 'general',
+                    language: parsed.language || null,
+                    content: parsed.text || parsed.content || p.content,
+                    image: parsed.image || null,
+                    video: parsed.video || null,
+                    likes: parsed.likes || [],
+                    comments: parsed.comments || [],
+                    createdAt: p.created_at || parsed.createdAt || new Date().toISOString()
+                };
+            });
+        } catch (err) {
+            console.warn('[RDSLP] Error obteniendo posts desde la nube:', err.message);
+            return null; // Indica que se use la caché local si falla la red
+        }
+    }
+
+    async function createCloudPost(postData) {
+        const client = await getClient();
+        const payloadContent = JSON.stringify({
+            text: postData.content,
+            type: postData.type || 'general',
+            language: postData.language || null,
+            image: postData.image || null,
+            video: postData.video || null,
+            likes: postData.likes || [],
+            comments: postData.comments || [],
+            authorId: postData.authorId,
+            authorName: postData.authorName,
+            createdAt: postData.createdAt || new Date().toISOString()
+        });
+
+        const insertPayload = {
+            title: (postData.content || 'Publicación').substring(0, 80),
+            content: payloadContent,
+            author_name: postData.authorName || 'Usuario'
+        };
+
+        // Si authorId es un UUID válido (de Supabase Auth), agregarlo; si es numérico/anónimo, dejarlo null para evitar error de tipo UUID
+        if (postData.authorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(postData.authorId))) {
+            insertPayload.author_id = postData.authorId;
+        }
+
+        const { data, error } = await client
+            .from('posts')
+            .insert(insertPayload)
+            .select();
+
+        if (error) {
+            console.error('[RDSLP] Error creando post en la nube:', error);
+            throw error;
+        }
+
+        const created = data && data[0] ? data[0] : null;
+        return created;
+    }
+
+    async function deleteCloudPost(postId) {
+        const client = await getClient();
+        const { error } = await client
+            .from('posts')
+            .delete()
+            .eq('id', postId);
+
+        if (error) {
+            console.error('[RDSLP] Error eliminando post en la nube:', error);
+            throw error;
+        }
+        return true;
+    }
+
+    async function updateCloudPost(postId, updatedData) {
+        const client = await getClient();
+        const payloadContent = JSON.stringify(updatedData);
+        const { error } = await client
+            .from('posts')
+            .update({ content: payloadContent })
+            .eq('id', postId);
+
+        if (error) {
+            console.warn('[RDSLP] Error actualizando post:', error);
+        }
+    }
+
+    // 2. COMENTARIOS EN PUBLICACIONES
+    async function fetchCloudComments(postId) {
+        try {
+            const client = await getClient();
+            const { data, error } = await client
+                .from('comments')
+                .select('*')
+                .eq('post_id', postId)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            return (data || []).map(c => ({
+                id: c.id,
+                authorId: null,
+                authorName: c.author,
+                text: c.content,
+                createdAt: c.created_at
+            }));
+        } catch (err) {
+            console.warn('[RDSLP] Error obteniendo comentarios en la nube:', err.message);
+            return null;
+        }
+    }
+
+    async function createCloudComment(postId, commentData) {
+        try {
+            const client = await getClient();
+            const { data, error } = await client
+                .from('comments')
+                .insert({
+                    post_id: postId,
+                    author: commentData.authorName || 'Usuario',
+                    content: commentData.text || commentData.content || ''
+                })
+                .select();
+
+            if (error) throw error;
+            return data && data[0] ? data[0] : null;
+        } catch (err) {
+            console.warn('[RDSLP] Error guardando comentario en la nube:', err.message);
+            return null;
+        }
+    }
+
+    // 3. MENSAJES DE CHAT (GENERAL Y POR SALAS)
+    async function fetchCloudMessages(chatId = 'general') {
+        try {
+            const client = await getClient();
+            const targetTitle = '__CHAT__:' + chatId;
+            const { data, error } = await client
+                .from('posts')
+                .select('*')
+                .eq('title', targetTitle)
+                .order('created_at', { ascending: true })
+                .limit(100);
+
+            if (error) throw error;
+
+            return (data || []).map(item => {
+                let parsed = {};
+                try {
+                    parsed = JSON.parse(item.content);
+                } catch {
+                    parsed = { text: item.content };
+                }
+
+                return {
+                    id: item.id,
+                    chatId: chatId,
+                    authorId: parsed.authorId || item.author_id,
+                    authorName: parsed.authorName || item.author_name || 'Usuario',
+                    text: parsed.text || '',
+                    image: parsed.image || null,
+                    createdAt: item.created_at || parsed.createdAt || new Date().toISOString()
+                };
+            });
+        } catch (err) {
+            console.warn('[RDSLP] Error cargando mensajes en la nube:', err.message);
+            return null;
+        }
+    }
+
+    async function sendCloudMessage(chatId = 'general', messageData) {
+        try {
+            const client = await getClient();
+            const targetTitle = '__CHAT__:' + chatId;
+            const payload = JSON.stringify({
+                authorId: messageData.authorId,
+                authorName: messageData.authorName || 'Usuario',
+                text: messageData.text || '',
+                image: messageData.image || null,
+                createdAt: messageData.createdAt || new Date().toISOString()
+            });
+
+            const insertPayload = {
+                title: targetTitle,
+                content: payload,
+                author_name: messageData.authorName || 'Usuario'
+            };
+
+            if (messageData.authorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(messageData.authorId))) {
+                insertPayload.author_id = messageData.authorId;
+            }
+
+            const { data, error } = await client
+                .from('posts')
+                .insert(insertPayload)
+                .select();
+
+            if (error) throw error;
+            return data && data[0] ? data[0] : null;
+        } catch (err) {
+            console.error('[RDSLP] Error enviando mensaje a la nube:', err);
+            return null;
+        }
+    }
+
+    // 4. COMUNIDADES Y SALAS EN LA NUBE
+    async function fetchCloudCommunities() {
+        try {
+            const client = await getClient();
+            const { data, error } = await client
+                .from('posts')
+                .select('*')
+                .eq('title', '__COMMUNITY__')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            return (data || []).map(item => {
+                let parsed = {};
+                try {
+                    parsed = JSON.parse(item.content);
+                } catch {
+                    parsed = {};
+                }
+
+                return {
+                    id: parsed.id || item.id,
+                    cloudId: item.id,
+                    title: parsed.title || 'Comunidad',
+                    description: parsed.description || '',
+                    date: parsed.date || item.created_at,
+                    maxParticipants: parsed.maxParticipants || 20,
+                    category: parsed.category || 'general',
+                    accessType: parsed.accessType || 'public',
+                    inviteCode: parsed.inviteCode || null,
+                    organizer: parsed.organizer || item.author_name || 'Organizador',
+                    organizerName: parsed.organizerName || item.author_name || 'Organizador',
+                    participants: parsed.participants || [],
+                    createdAt: item.created_at || parsed.createdAt || new Date().toISOString()
+                };
+            });
+        } catch (err) {
+            console.warn('[RDSLP] Error cargando comunidades de la nube:', err.message);
+            return null;
+        }
+    }
+
+    async function createCloudCommunity(commData) {
+        try {
+            const client = await getClient();
+            const payload = JSON.stringify(commData);
+            const insertPayload = {
+                title: '__COMMUNITY__',
+                content: payload,
+                author_name: commData.organizerName || 'Organizador'
+            };
+
+            if (commData.organizerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(commData.organizerId))) {
+                insertPayload.author_id = commData.organizerId;
+            }
+
+            const { data, error } = await client
+                .from('posts')
+                .insert(insertPayload)
+                .select();
+
+            if (error) throw error;
+            return data && data[0] ? data[0] : null;
+        } catch (err) {
+            console.error('[RDSLP] Error creando comunidad en la nube:', err);
+            return null;
+        }
+    }
+
+    async function updateCloudCommunity(communityId, updatedData) {
+        try {
+            const client = await getClient();
+            const payload = JSON.stringify(updatedData);
+
+            // Intentar por ID directo si es entero de Supabase
+            if (typeof communityId === 'number' || /^\d+$/.test(String(communityId))) {
+                await client
+                    .from('posts')
+                    .update({ content: payload })
+                    .eq('id', Number(communityId));
+            } else {
+                // Si es un id timestamp, buscar el post que contenga el id en content
+                const { data } = await client
+                    .from('posts')
+                    .select('id, content')
+                    .eq('title', '__COMMUNITY__');
+
+                if (data) {
+                    const match = data.find(d => {
+                        try { return JSON.parse(d.content).id === communityId; } catch { return false; }
+                    });
+                    if (match) {
+                        await client.from('posts').update({ content: payload }).eq('id', match.id);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[RDSLP] Error actualizando comunidad en la nube:', err);
+        }
+    }
+
+    async function deleteCloudCommunity(communityId) {
+        try {
+            const client = await getClient();
+            if (typeof communityId === 'number' || /^\d+$/.test(String(communityId))) {
+                await client
+                    .from('posts')
+                    .delete()
+                    .eq('id', Number(communityId));
+            }
+
+            // Buscar también por coincidencia de JSON
+            const { data } = await client
+                .from('posts')
+                .select('id, content')
+                .eq('title', '__COMMUNITY__');
+
+            if (data) {
+                for (const d of data) {
+                    try {
+                        const parsed = JSON.parse(d.content);
+                        if (String(parsed.id) === String(communityId)) {
+                            await client.from('posts').delete().eq('id', d.id);
+                        }
+                    } catch {}
+                }
+            }
+            return true;
+        } catch (err) {
+            console.error('[RDSLP] Error eliminando comunidad de la nube:', err);
+            return false;
+        }
+    }
+
     // Exportar API global
     window.rdslpSupabase = {
         init: getClient,
@@ -465,7 +831,22 @@
         changeUserRole,
         toggleBanUser,
         getProfile,
-        upsertProfile
+        upsertProfile,
+        // Nube: Muro
+        fetchCloudPosts,
+        createCloudPost,
+        deleteCloudPost,
+        updateCloudPost,
+        fetchCloudComments,
+        createCloudComment,
+        // Nube: Chat
+        fetchCloudMessages,
+        sendCloudMessage,
+        // Nube: Comunidades
+        fetchCloudCommunities,
+        createCloudCommunity,
+        updateCloudCommunity,
+        deleteCloudCommunity
     };
 
     // Auto-iniciar carga en segundo plano

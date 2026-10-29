@@ -98,12 +98,27 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Helper robusto para validar permisos de administrador (soporta 'admin', 'administrador', mayúsculas y fallback de sesión)
+    function checkIsAdmin() {
+        let u = currentUser;
+        if (!u && auth && auth.getCurrentUser) {
+            u = auth.getCurrentUser();
+        }
+        if (!u) {
+            try {
+                const raw = localStorage.getItem('rdslp_user') || sessionStorage.getItem('rdslp_user');
+                if (raw) u = JSON.parse(raw);
+            } catch (e) {}
+        }
+        if (!u) return false;
+        currentUser = u;
+        const role = String(u.role || '').toLowerCase().trim();
+        return role === 'admin' || role === 'administrador';
+    }
+
     // Configurar UI basada en rol
     function setupRoleBasedUI() {
-        if (!currentUser) return;
-
-        // Mostrar panel de admin solo para admins
-        const isAdmin = currentUser.role === 'admin';
+        const isAdmin = checkIsAdmin();
         if (adminNavItem) {
             adminNavItem.style.display = isAdmin ? 'block' : 'none';
         }
@@ -1019,13 +1034,21 @@ db.usuarios.<span class="function">updateOne</span>(
             return;
         }
 
-        // Obtener comunidades creadas
+        // Obtener comunidades creadas (de Supabase en la nube con respaldo local)
         let allCommunities = [];
         try {
-            if (typeof community !== 'undefined' && community.getEvents) {
-                allCommunities = community.getEvents() || [];
-            } else {
-                allCommunities = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+            if (window.rdslpSupabase && window.rdslpSupabase.fetchCloudCommunities) {
+                const cloudComms = await window.rdslpSupabase.fetchCloudCommunities();
+                if (cloudComms && cloudComms.length > 0) {
+                    allCommunities = cloudComms;
+                }
+            }
+            if (allCommunities.length === 0) {
+                if (typeof community !== 'undefined' && community.getEvents) {
+                    allCommunities = community.getEvents() || [];
+                } else {
+                    allCommunities = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+                }
             }
         } catch (e) {
             allCommunities = [];
@@ -1188,11 +1211,14 @@ db.usuarios.<span class="function">updateOne</span>(
 
     // Funciones globales para admin conectadas con Supabase y Comunidades
     window.changeUserRole = async function (userId, newRole) {
-        if (!currentUser || currentUser.role !== 'admin') return;
+        if (!checkIsAdmin()) {
+            alert('Acción restringida: Se requieren permisos de Administrador.');
+            return;
+        }
 
         if (confirm(`¿Estás seguro de cambiar los permisos/rol de este usuario a "${newRole}" en Supabase?`)) {
             try {
-                if (window.rdslpSupabase) {
+                if (window.rdslpSupabase && window.rdslpSupabase.changeUserRole) {
                     await window.rdslpSupabase.changeUserRole(userId, newRole);
                 } else {
                     auth.changeUserRole(userId, newRole);
@@ -1211,12 +1237,15 @@ db.usuarios.<span class="function">updateOne</span>(
     };
 
     window.toggleBanUser = async function (userId, ban) {
-        if (!currentUser || currentUser.role !== 'admin') return;
+        if (!checkIsAdmin()) {
+            alert('Acción restringida: Se requieren permisos de Administrador.');
+            return;
+        }
 
         const action = ban ? 'banear' : 'desbanear';
         if (confirm(`¿Estás seguro de ${action} a este usuario en Supabase?`)) {
             try {
-                if (window.rdslpSupabase) {
+                if (window.rdslpSupabase && window.rdslpSupabase.toggleBanUser) {
                     await window.rdslpSupabase.toggleBanUser(userId, ban);
                 } else {
                     if (ban) auth.banUser(userId); else auth.unbanUser(userId);
@@ -1229,10 +1258,16 @@ db.usuarios.<span class="function">updateOne</span>(
         }
     };
 
-    window.deleteCommunityAdmin = function (eventId) {
-        if (!currentUser || currentUser.role !== 'admin') return;
-        if (confirm('¿Estás seguro de eliminar esta comunidad / sala como administrador?')) {
+    window.deleteCommunityAdmin = async function (eventId) {
+        if (!checkIsAdmin()) {
+            alert('Acción restringida: Se requieren permisos de Administrador.');
+            return;
+        }
+        if (confirm('¿Estás seguro de eliminar esta comunidad / sala como administrador? Esta acción la removerá para todos los usuarios.')) {
             try {
+                if (window.rdslpSupabase && window.rdslpSupabase.deleteCloudCommunity) {
+                    await window.rdslpSupabase.deleteCloudCommunity(eventId);
+                }
                 if (typeof community !== 'undefined' && community.deleteEvent) {
                     community.deleteEvent(Number(eventId) || eventId, currentUser.id);
                 } else {
@@ -1240,7 +1275,7 @@ db.usuarios.<span class="function">updateOne</span>(
                     events = events.filter(e => String(e.id) !== String(eventId));
                     localStorage.setItem('rdslp_events', JSON.stringify(events));
                 }
-                renderUserList('created-communities');
+                await renderUserList('created-communities');
             } catch (err) {
                 alert('Error al eliminar comunidad: ' + err.message);
             }

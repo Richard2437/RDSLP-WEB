@@ -22,6 +22,10 @@ document.addEventListener('DOMContentLoaded', function () {
         loadFeed();
         setupEventListeners();
 
+        // Cargar posts desde la nube (Supabase) para soporte multi-usuario real entre diferentes dispositivos
+        syncCloudFeed();
+        setInterval(syncCloudFeed, 4000);
+
         // Escuchar sincronización con Supabase para actualizar rol y permisos en vivo (con detección de cambios para evitar parpadeo del feed)
         const handleUserUpdate = (e) => {
             const updated = e.detail || auth.getCurrentUser();
@@ -34,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             currentUser = updated;
             loadUserData();
-            loadFeed();
+            syncCloudFeed();
         };
         window.addEventListener('userSynced', handleUserUpdate);
         window.addEventListener('rdslp_user_updated', handleUserUpdate);
@@ -104,7 +108,35 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function createPost() {
+    async function syncCloudFeed() {
+        if (!window.rdslpSupabase || typeof window.rdslpSupabase.fetchCloudPosts !== 'function') return;
+        try {
+            const cloudPosts = await window.rdslpSupabase.fetchCloudPosts();
+            if (cloudPosts && Array.isArray(cloudPosts)) {
+                const localPosts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
+                
+                // Si la nube tiene posts, los adoptamos como fuente de verdad
+                if (cloudPosts.length > 0) {
+                    const currentSig = JSON.stringify(localPosts.map(p => ({ id: p.id, likes: p.likes?.length, comments: p.comments?.length })));
+                    const cloudSig = JSON.stringify(cloudPosts.map(p => ({ id: p.id, likes: p.likes?.length, comments: p.comments?.length })));
+                    
+                    if (currentSig !== cloudSig) {
+                        localStorage.setItem('rdslp_posts', JSON.stringify(cloudPosts));
+                        loadFeed();
+                    }
+                } else if (localPosts.length > 0) {
+                    // Migración automática inicial: si la nube está vacía pero hay posts locales, subirlos a Supabase
+                    for (const lp of localPosts.slice(0, 5)) {
+                        await window.rdslpSupabase.createCloudPost(lp).catch(() => {});
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[RDSLP Muro] Error al sincronizar posts:', e);
+        }
+    }
+
+    async function createPost() {
         if (window.SocialModerationManager && currentUser) {
             const sanction = window.SocialModerationManager.getSanctionStatus(currentUser.id);
             if (sanction.isBanned) {
@@ -131,10 +163,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
 
+        const tempId = Date.now();
         const newPost = {
-            id: Date.now(),
+            id: tempId,
             authorId: currentUser.id,
-            authorName: currentUser.name,
+            authorName: currentUser.name || 'Usuario',
             type: typeEl.value,
             language: langEl.value || null,
             content: postContent,
@@ -145,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
             createdAt: new Date().toISOString()
         };
 
+        // Guardado optimista instantáneo para experiencia fluida
         posts.unshift(newPost);
         localStorage.setItem('rdslp_posts', JSON.stringify(posts));
 
@@ -155,6 +189,20 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('mediaInputs').style.display = 'none';
 
         loadFeed();
+
+        // Enviar a Supabase para que cualquier otro usuario o dispositivo lo vea en tiempo real
+        if (window.rdslpSupabase && typeof window.rdslpSupabase.createCloudPost === 'function') {
+            try {
+                const created = await window.rdslpSupabase.createCloudPost(newPost);
+                if (created && created.id) {
+                    newPost.id = created.id;
+                    newPost.cloudId = created.id;
+                    localStorage.setItem('rdslp_posts', JSON.stringify(posts));
+                }
+            } catch (err) {
+                console.error('[RDSLP Muro] Error al guardar publicación en la nube:', err);
+            }
+        }
     }
 
     function loadFeed() {
@@ -381,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
-        const post = posts.find(p => p.id === postId);
+        const post = posts.find(p => p.id === postId || String(p.id) === String(postId));
 
         if (post) {
             if (!post.likes) post.likes = [];
@@ -395,6 +443,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             localStorage.setItem('rdslp_posts', JSON.stringify(posts));
             loadFeed();
+
+            // Sincronizar actualización de likes a Supabase
+            if (window.rdslpSupabase && window.rdslpSupabase.updateCloudPost) {
+                window.rdslpSupabase.updateCloudPost(post.cloudId || post.id, post).catch(() => {});
+            }
         }
     };
 
@@ -405,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    window.addComment = function (postId) {
+    window.addComment = async function (postId) {
         if (!currentUser) {
             alert('Debes iniciar sesión');
             return;
@@ -423,32 +476,46 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!input || !input.value.trim()) return;
 
         const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
-        const post = posts.find(p => p.id === postId);
+        const post = posts.find(p => p.id === postId || String(p.id) === String(postId));
 
         if (post) {
             if (!post.comments) post.comments = [];
 
-            post.comments.push({
+            const newComment = {
                 id: Date.now(),
                 authorId: currentUser.id,
-                authorName: currentUser.name,
+                authorName: currentUser.name || 'Usuario',
                 text: input.value.trim(),
                 createdAt: new Date().toISOString()
-            });
+            };
+
+            post.comments.push(newComment);
+            input.value = '';
 
             localStorage.setItem('rdslp_posts', JSON.stringify(posts));
             loadFeed();
+
+            // Sincronizar comentario en Supabase (tabla comments y objeto post)
+            if (window.rdslpSupabase) {
+                const targetId = post.cloudId || post.id;
+                if (window.rdslpSupabase.createCloudComment) {
+                    window.rdslpSupabase.createCloudComment(targetId, newComment).catch(() => {});
+                }
+                if (window.rdslpSupabase.updateCloudPost) {
+                    window.rdslpSupabase.updateCloudPost(targetId, post).catch(() => {});
+                }
+            }
         }
     };
 
     // Eliminar publicación (solo autor o administrador/moderador)
-    window.deletePost = function (postId) {
+    window.deletePost = async function (postId) {
         if (!currentUser) {
             alert('Debes iniciar sesión');
             return;
         }
 
-        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'moderator';
+        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'administrador' || currentUser.role === 'moderator';
         const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
         const postIndex = posts.findIndex(p => p.id === postId || String(p.id) === String(postId));
 
@@ -464,9 +531,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!confirm('¿Estás seguro de que deseas eliminar esta publicación del muro?')) return;
 
+        const targetId = post.cloudId || post.id;
         posts.splice(postIndex, 1);
         localStorage.setItem('rdslp_posts', JSON.stringify(posts));
         loadFeed();
+
+        if (window.rdslpSupabase && window.rdslpSupabase.deleteCloudPost) {
+            try {
+                await window.rdslpSupabase.deleteCloudPost(targetId);
+            } catch (err) {
+                console.warn('[RDSLP Muro] Error eliminando post en Supabase:', err);
+            }
+        }
     };
 
     // Eliminar comentario (solo autor o administrador/moderador)

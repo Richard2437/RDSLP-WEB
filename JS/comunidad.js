@@ -27,6 +27,12 @@ document.addEventListener('DOMContentLoaded', function () {
         loadEvents();
         setupEventListeners();
         checkInviteUrlParams();
+
+        // Sincronización en la nube con Supabase (para que los chats y comunidades se vean entre diferentes usuarios y dispositivos)
+        syncCloudChat();
+        syncCloudCommunities();
+        setInterval(syncCloudChat, 3000);
+        setInterval(syncCloudCommunities, 6000);
     }
 
     function checkAuth() {
@@ -341,11 +347,16 @@ document.addEventListener('DOMContentLoaded', function () {
             text,
             image: image || null,
             authorId: currentUser.id,
-            authorName: currentUser.name,
+            authorName: currentUser.name || 'Usuario',
             createdAt: new Date().toISOString()
         };
         messages.push(newMessage);
         localStorage.setItem('rdslp_messages', JSON.stringify(messages));
+
+        // Enviar a Supabase para entrega en tiempo real a otros usuarios
+        if (window.rdslpSupabase && typeof window.rdslpSupabase.sendCloudMessage === 'function') {
+            window.rdslpSupabase.sendCloudMessage(chatId, newMessage).catch(e => console.warn('[RDSLP Chat Cloud Error]:', e));
+        }
     }
 
     function getEventChatMessages(eventId) {
@@ -357,16 +368,80 @@ document.addEventListener('DOMContentLoaded', function () {
         const chats = JSON.parse(localStorage.getItem('rdslp_event_chats') || '{}');
         if (!chats[eventId]) chats[eventId] = [];
 
-        chats[eventId].push({
+        const newMessage = {
             id: Date.now(),
             authorId: currentUser.id,
-            authorName: currentUser.name,
+            authorName: currentUser.name || 'Usuario',
             text,
             image: image || null,
             createdAt: new Date().toISOString()
-        });
+        };
 
+        chats[eventId].push(newMessage);
         localStorage.setItem('rdslp_event_chats', JSON.stringify(chats));
+
+        // Enviar a Supabase
+        if (window.rdslpSupabase && typeof window.rdslpSupabase.sendCloudMessage === 'function') {
+            window.rdslpSupabase.sendCloudMessage('event_' + eventId, newMessage).catch(e => console.warn('[RDSLP Event Chat Cloud Error]:', e));
+        }
+    }
+
+    // Sincronización en segundo plano de mensajes desde Supabase
+    async function syncCloudChat() {
+        if (!window.rdslpSupabase || typeof window.rdslpSupabase.fetchCloudMessages !== 'function') return;
+        const targetChatId = currentEventChat ? `event_${currentEventChat}` : (document.querySelector('.chat-tab.active')?.dataset.chat || 'general');
+
+        try {
+            const cloudMsgs = await window.rdslpSupabase.fetchCloudMessages(targetChatId);
+            if (cloudMsgs && Array.isArray(cloudMsgs) && cloudMsgs.length > 0) {
+                if (currentEventChat) {
+                    const chats = JSON.parse(localStorage.getItem('rdslp_event_chats') || '{}');
+                    const localMsgs = chats[currentEventChat] || [];
+                    if (cloudMsgs.length !== localMsgs.length) {
+                        chats[currentEventChat] = cloudMsgs;
+                        localStorage.setItem('rdslp_event_chats', JSON.stringify(chats));
+                        loadChatMessages();
+                    }
+                } else {
+                    const allLocal = JSON.parse(localStorage.getItem('rdslp_messages') || '[]');
+                    const chatFilteredLocal = allLocal.filter(m => (m.chatId || 'general') === targetChatId);
+                    if (cloudMsgs.length !== chatFilteredLocal.length) {
+                        const otherLocal = allLocal.filter(m => (m.chatId || 'general') !== targetChatId);
+                        const merged = otherLocal.concat(cloudMsgs);
+                        localStorage.setItem('rdslp_messages', JSON.stringify(merged));
+                        loadChatMessages(targetChatId);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[RDSLP Chat Sync Error]:', e);
+        }
+    }
+
+    // Sincronización en segundo plano de comunidades desde Supabase
+    async function syncCloudCommunities() {
+        if (!window.rdslpSupabase || typeof window.rdslpSupabase.fetchCloudCommunities !== 'function') return;
+        try {
+            const cloudComms = await window.rdslpSupabase.fetchCloudCommunities();
+            if (cloudComms && Array.isArray(cloudComms)) {
+                const localComms = community.getEvents() || [];
+                if (cloudComms.length > 0) {
+                    const localSig = JSON.stringify(localComms.map(c => ({ id: c.id, parts: c.participants?.length })));
+                    const cloudSig = JSON.stringify(cloudComms.map(c => ({ id: c.id, parts: c.participants?.length })));
+                    if (localSig !== cloudSig) {
+                        localStorage.setItem('rdslp_events', JSON.stringify(cloudComms));
+                        loadEvents();
+                    }
+                } else if (localComms.length > 0) {
+                    // Migración inicial: subir comunidades locales existentes a Supabase
+                    for (const lc of localComms) {
+                        await window.rdslpSupabase.createCloudCommunity(lc).catch(() => {});
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[RDSLP Comms Sync Error]:', e);
+        }
     }
 
     // ========== SALAS Y COMUNIDADES (Públicas en lista, Privadas ocultas sin invitación) ==========
@@ -510,6 +585,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         loadEvents();
+
+        // Guardar la nueva comunidad en Supabase para que cualquier otro usuario la vea
+        if (window.rdslpSupabase && typeof window.rdslpSupabase.createCloudCommunity === 'function') {
+            window.rdslpSupabase.createCloudCommunity(created).catch(e => console.warn('[RDSLP Create Comm Cloud Error]:', e));
+        }
     }
 
     function closeEventModal() {
@@ -926,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Eliminar la comunidad y su chat
-    window.deleteCommunityGroup = function (eventId) {
+    window.deleteCommunityGroup = async function (eventId) {
         if (!currentUser) return;
         if (!confirm('⚠️ ¿Estás seguro de eliminar esta comunidad y grupo por completo? Esta acción es irreversible y borrará el chat y a todos los participantes.')) {
             return;
@@ -944,6 +1024,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
             window.closeCommunityInfoModal();
             loadEvents();
+
+            // Eliminar de Supabase para que desaparezca de las demás pantallas y dispositivos
+            if (window.rdslpSupabase && typeof window.rdslpSupabase.deleteCloudCommunity === 'function') {
+                await window.rdslpSupabase.deleteCloudCommunity(eventId).catch(() => {});
+            }
+
             alert('✓ Comunidad eliminada exitosamente.');
         } else {
             alert(res.message || 'No se pudo eliminar la comunidad.');
@@ -1031,21 +1117,152 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
+        // Configuración de pestaña de moderación para Administradores
+        let currentTargetProfile = { id: targetUserId, name: displayName };
+        window.currentComunidadProfileTarget = currentTargetProfile;
+
+        const adminTab = document.getElementById('modalAdminTab');
+        const userRoleLower = String(currentUser?.role || '').toLowerCase();
+        const isAdmin = userRoleLower === 'admin' || userRoleLower === 'administrador' || userRoleLower === 'moderator';
+        const isSelf = currentUser && (String(currentUser.id) === String(targetUserId) || currentUser.name === displayName);
+
+        if (adminTab) {
+            adminTab.style.display = (isAdmin && !isSelf) ? 'inline-flex' : 'none';
+        }
+
         switchComunidadProfileTab('posts');
+
+        if (isAdmin && !isSelf) {
+            renderComunidadSanctionsHistory(targetUserId);
+        }
+
         modal.classList.add('active');
     };
 
+    function renderComunidadSanctionsHistory(targetUserId) {
+        const listEl = document.getElementById('modalSanctionsHistory');
+        if (!listEl) return;
+
+        const mgr = window.SocialModerationManager;
+        const status = mgr ? mgr.getSanctionStatus(targetUserId) : { isBanned: false, isMuted: false, warnings: [] };
+
+        let html = '';
+        if (status.isBanned) {
+            html += `
+                <div class="mod-status-badge ban" style="padding: 10px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); margin-bottom: 8px;">
+                    ⛔ <strong>Cuenta Suspendida:</strong> ${status.banExpires ? 'Hasta ' + new Date(status.banExpires).toLocaleDateString() : 'Permanente'} - ${escapeHtml(status.banReason || 'Sanción disciplinaria')}
+                </div>
+            `;
+        }
+        if (status.isMuted) {
+            html += `
+                <div class="mod-status-badge mute" style="padding: 10px; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); margin-bottom: 8px;">
+                    🔇 <strong>Silenciado:</strong> ${status.muteExpires ? 'Hasta ' + new Date(status.muteExpires).toLocaleDateString() : 'Permanente'} - ${escapeHtml(status.muteReason || 'Restricción de moderación')}
+                </div>
+            `;
+        }
+
+        if (status.warnings && status.warnings.length > 0) {
+            html += `<div style="margin-top: 10px; font-size: 13px; font-weight: 600; color: #f59e0b;">⚠️ Avisos Disciplinarios (${status.warnings.length} Strikes):</div>`;
+            html += status.warnings.map(w => `
+                <div class="mod-warning-item" style="padding: 8px; border-radius: 6px; background: var(--bg-card); border: 1px solid var(--border-color); margin-top: 6px;">
+                    <div style="font-weight: 600; color: #fbbf24; font-size: 13px;">${escapeHtml(w.reason)}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin: 3px 0;">${escapeHtml(w.note || 'Sin detalles adicionales')}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Emitido por ${escapeHtml(w.issuedBy)} · ${new Date(w.date).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
+
+        if (!html) {
+            html = '<p style="color: var(--text-muted); font-size: 13px;">Este usuario tiene un expediente limpio, sin sanciones ni avisos.</p>';
+        }
+
+        listEl.innerHTML = html;
+    }
+
     function switchComunidadProfileTab(tabName) {
         document.querySelectorAll('#userProfileModal .p-tab').forEach(t => {
-            t.classList.toggle('active', t.dataset.tab === tabName);
+            t.classList.toggle('active', t.dataset.tab === tabName || (tabName === 'admin' && t.id === 'modalAdminTab'));
         });
 
         const tabPosts = document.getElementById('tabPostsContent');
         const tabAbout = document.getElementById('tabAboutContent');
+        const tabAdmin = document.getElementById('tabAdminContent');
 
         if (tabPosts) tabPosts.style.display = tabName === 'posts' ? 'block' : 'none';
         if (tabAbout) tabAbout.style.display = tabName === 'about' ? 'block' : 'none';
+        if (tabAdmin) tabAdmin.style.display = tabName === 'admin' ? 'block' : 'none';
     }
+
+    // Funciones globales de moderación para Administradores desde la pestaña de Perfil
+    window.applyMute = function (days) {
+        const target = window.currentComunidadProfileTarget;
+        if (!target || !window.SocialModerationManager) return;
+        const durationText = days === 0 ? 'de forma permanente' : `por ${days} día(s)`;
+        if (!confirm(`¿Confirmas silenciar a ${target.name} ${durationText}? No podrá publicar comentarios ni enviar mensajes.`)) return;
+
+        const res = window.SocialModerationManager.muteUser(currentUser, target.id, days);
+        if (res.success) {
+            alert('✓ Silencio aplicado con éxito.');
+            renderComunidadSanctionsHistory(target.id);
+        } else {
+            alert(res.message || 'Error al aplicar sanción.');
+        }
+    };
+
+    window.applyBan = function (days) {
+        const target = window.currentComunidadProfileTarget;
+        if (!target || !window.SocialModerationManager) return;
+        const durationText = days === 0 ? 'de forma permanente' : `por ${days} día(s)`;
+        if (!confirm(`¿Confirmas suspender / banear a ${target.name} ${durationText}?`)) return;
+
+        const res = window.SocialModerationManager.banUser(currentUser, target.id, days);
+        if (res.success) {
+            alert('✓ Baneo aplicado con éxito.');
+            renderComunidadSanctionsHistory(target.id);
+            if (window.rdslpSupabase && window.rdslpSupabase.toggleBanUser) {
+                window.rdslpSupabase.toggleBanUser(target.id, true).catch(() => {});
+            }
+        } else {
+            alert(res.message || 'Error al suspender al usuario.');
+        }
+    };
+
+    window.liftSanction = function () {
+        const target = window.currentComunidadProfileTarget;
+        if (!target || !window.SocialModerationManager) return;
+        if (!confirm(`¿Confirmas levantar todas las sanciones y silencios a ${target.name}?`)) return;
+
+        const res = window.SocialModerationManager.liftSanctions(currentUser, target.id);
+        if (res.success) {
+            alert('✓ Sanciones levantadas correctamente.');
+            renderComunidadSanctionsHistory(target.id);
+            if (window.rdslpSupabase && window.rdslpSupabase.toggleBanUser) {
+                window.rdslpSupabase.toggleBanUser(target.id, false).catch(() => {});
+            }
+        } else {
+            alert(res.message || 'Error al levantar sanciones.');
+        }
+    };
+
+    document.getElementById('btnIssueWarning')?.addEventListener('click', function () {
+        const target = window.currentComunidadProfileTarget;
+        if (!target || !window.SocialModerationManager) return;
+
+        const select = document.getElementById('warnReasonSelect');
+        const noteInput = document.getElementById('warnNoteInput');
+        const reason = select ? select.value : 'Infracción de normas';
+        const note = noteInput ? noteInput.value.trim() : '';
+
+        const res = window.SocialModerationManager.issueWarning(currentUser, target.id, reason, note);
+        if (res.success) {
+            alert(`✓ Aviso disciplinario (Strike ${res.warningCount}/3) emitido con éxito.`);
+            if (noteInput) noteInput.value = '';
+            renderComunidadSanctionsHistory(target.id);
+        } else {
+            alert(res.message || 'Error al emitir el aviso.');
+        }
+    });
 
     // Vincular pestañas y botones de cierre de modales
     document.getElementById('closeCommunityInfoModal')?.addEventListener('click', window.closeCommunityInfoModal);
@@ -1055,7 +1272,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('#userProfileModal .p-tab').forEach(tab => {
         tab.addEventListener('click', function () {
-            switchComunidadProfileTab(this.dataset.tab);
+            const tabName = this.dataset.tab || (this.id === 'modalAdminTab' ? 'admin' : 'posts');
+            switchComunidadProfileTab(tabName);
         });
     });
 

@@ -486,6 +486,7 @@
                 <div class="profile-modal-tabs">
                     <button type="button" class="p-tab active" data-tab="posts">Publicaciones</button>
                     <button type="button" class="p-tab" data-tab="about">Acerca de</button>
+                    <button type="button" class="p-tab admin-mod-tab" id="modalAdminTab" style="display: none;">🛡️ Moderación (Admin)</button>
                 </div>
 
                 <div class="p-tab-content active" id="tabPostsContent">
@@ -503,6 +504,65 @@
                             <span class="tech-tag">JavaScript</span>
                             <span class="tech-tag">Python</span>
                             <span class="tech-tag">Bases de Datos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Moderación Exclusivo para Admin / Moderador -->
+                <div class="p-tab-content" id="tabAdminContent" style="display: none;">
+                    <div class="admin-mod-panel">
+                        <div class="mod-alert-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            <div>
+                                <strong>Herramientas Oficiales de Moderación</strong>
+                                <p>Aplica sanciones, avisos o suspensiones a este perfil según las normas de la comunidad.</p>
+                            </div>
+                        </div>
+
+                        <div class="mod-section">
+                            <h4>⚠️ Emitir Aviso Oficial de la Comunidad (Strike)</h4>
+                            <p class="mod-desc">El usuario recibirá una notificación obligatoria sobre infracción de normas en su cuenta.</p>
+                            <div class="mod-form-row">
+                                <select id="warnReasonSelect" class="mod-input">
+                                    <option value="Lenguaje ofensivo o inapropiado">Lenguaje ofensivo o inapropiado</option>
+                                    <option value="Spam o publicidad no permitida">Spam o contenido no deseado</option>
+                                    <option value="Acoso o comportamiento hostil">Acoso o comportamiento hostil</option>
+                                    <option value="Código malicioso o desinformación">Código malicioso o desinformación</option>
+                                    <option value="Infracción reiterada de normas">Infracción reiterada de normas</option>
+                                </select>
+                                <input type="text" id="warnNoteInput" class="mod-input" placeholder="Nota explicativa o mensaje al usuario...">
+                                <button type="button" class="btn-mod-action btn-warn" id="btnIssueWarning">Enviar Aviso</button>
+                            </div>
+                        </div>
+
+                        <div class="mod-section">
+                            <h4>🔇 Silenciar de Chat y Comentarios</h4>
+                            <p class="mod-desc">Impide que el usuario publique en el muro o envíe mensajes durante un período.</p>
+                            <div class="mod-buttons-row">
+                                <button type="button" class="btn-mod-action btn-mute" onclick="window.applyMute(1)">Silenciar 1 Día</button>
+                                <button type="button" class="btn-mod-action btn-mute" onclick="window.applyMute(3)">Silenciar 3 Días</button>
+                                <button type="button" class="btn-mod-action btn-mute" onclick="window.applyMute(7)">Silenciar 7 Días</button>
+                                <button type="button" class="btn-mod-action btn-mute-perm" onclick="window.applyMute(0)">Silenciar Permanente</button>
+                            </div>
+                        </div>
+
+                        <div class="mod-section">
+                            <h4>⛔ Suspensión / Baneo de Cuenta</h4>
+                            <p class="mod-desc">Bloquea temporal o permanentemente el acceso del usuario a la plataforma.</p>
+                            <div class="mod-buttons-row">
+                                <button type="button" class="btn-mod-action btn-ban-temp" onclick="window.applyBan(1)">Baneo 24h</button>
+                                <button type="button" class="btn-mod-action btn-ban-temp" onclick="window.applyBan(3)">Baneo 3 Días</button>
+                                <button type="button" class="btn-mod-action btn-ban-temp" onclick="window.applyBan(7)">Baneo 7 Días</button>
+                                <button type="button" class="btn-mod-action btn-ban-perm" onclick="window.applyBan(0)">Baneo Permanente</button>
+                                <button type="button" class="btn-mod-action btn-lift" onclick="window.liftSanction()">✅ Levantar Sanciones</button>
+                            </div>
+                        </div>
+
+                        <div class="mod-history-section">
+                            <h4>Historial de Sanciones y Avisos Activos</h4>
+                            <div id="modalSanctionsHistory" class="mod-history-list">
+                                <p style="color: var(--text-muted); font-size: 13px;">Sin sanciones registradas.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
