@@ -75,9 +75,34 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.classList.add('active');
                 currentEventChat = null;
                 const header = document.querySelector('.chat-header h3');
-                if (header) header.textContent = this.dataset.chat === 'ayuda' ? 'Chat de Ayuda y Soporte' : 'Chat General';
+                const chatInput = document.getElementById('chatInput');
+                if (this.dataset.chat === 'ayuda') {
+                    if (header) header.innerHTML = '💬 Chat de Ayuda y Soporte <span style="font-size: 11px; color: #10b981; font-weight: normal; margin-left: 8px;">● Sistema 24/7</span>';
+                    if (chatInput) chatInput.placeholder = "Escribe tu duda o usa '/ayuda [describe tu problema]'...";
+                } else {
+                    if (header) header.textContent = 'Chat General';
+                    if (chatInput) chatInput.placeholder = "Escribe un mensaje...";
+                }
                 loadChatMessages(this.dataset.chat);
             });
+        });
+
+        // Detectar si se navegó con hash #ayuda
+        const checkAyudaHash = () => {
+            if (window.location.hash === '#ayuda' || window.location.hash === '#soporte') {
+                const ayudaTab = document.querySelector('.chat-tab[data-chat="ayuda"]');
+                if (ayudaTab) ayudaTab.click();
+            }
+        };
+        checkAyudaHash();
+        window.addEventListener('hashchange', checkAyudaHash);
+
+        // Escuchar actualización de mensajes de soporte en vivo
+        window.addEventListener('rdslp_support_updated', () => {
+            const activeTab = document.querySelector('.chat-tab.active')?.dataset.chat;
+            if (activeTab === 'ayuda') {
+                loadChatMessages('ayuda');
+            }
         });
 
         // Enviar mensaje
@@ -244,9 +269,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ========== CHAT CON EMOJIS, IMÁGENES Y LINKS ==========
-    function loadChatMessages(chatId = 'general') {
+    async function loadChatMessages(chatId = 'general') {
         const container = document.getElementById('chatMessages');
         if (!container) return;
+
+        if (!currentEventChat && chatId === 'ayuda') {
+            await renderAyudaChat(container);
+            return;
+        }
 
         let messages;
         if (currentEventChat) {
@@ -291,6 +321,106 @@ document.addEventListener('DOMContentLoaded', function () {
         container.scrollTop = container.scrollHeight;
     }
 
+    async function renderAyudaChat(container) {
+        if (!container) return;
+
+        // Estado de moderación / sanciones
+        let statusBadge = '<span style="color: #10b981; font-weight: 600;">🟢 Cuenta Activa</span>';
+        if (currentUser && window.socialModeration) {
+            try {
+                const s = window.socialModeration.getUserSanctions(currentUser.id);
+                if (s.isBanned) {
+                    statusBadge = '<span style="color: #ef4444; font-weight: 600;">⛔ Cuenta Suspendida</span>';
+                } else if (s.isMuted) {
+                    statusBadge = '<span style="color: #fbbf24; font-weight: 600;">🔇 Silenciado</span>';
+                } else if (s.warnings && s.warnings.length > 0) {
+                    statusBadge = `<span style="color: #f59e0b; font-weight: 600;">⚠️ ${s.warnings.length} Strikes</span>`;
+                }
+            } catch (e) {}
+        }
+
+        const bannerHTML = `
+            <div class="ayuda-status-card" style="background: var(--bg-card, #171717); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 22px;">🤖</span>
+                        <div>
+                            <strong style="font-size: 13.5px; color: var(--text-primary);">Canal de Asistencia y Notificaciones</strong>
+                            <div style="font-size: 11px; color: #10b981; font-weight: 500;">● Bot Oficial Activo 24/7 · Mensajes Guardados</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color);">
+                        ${statusBadge}
+                    </div>
+                </div>
+                <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.22); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.45;">
+                    💡 <strong>¿Cómo pedir ayuda o contactar al Administrador?</strong><br>
+                    Escribe tu duda o usa el comando:<br>
+                    <code style="background: rgba(0,0,0,0.35); color: #fbbf24; padding: 2px 6px; border-radius: 4px; font-weight: 600;">/ayuda [describe tu problema aquí]</code><br>
+                    Se enviará una alerta prioritaria al Administrador y sus respuestas aparecerán aquí mismo.
+                </div>
+            </div>
+        `;
+
+        let messagesHTML = '';
+        if (window.rdslpNotifications && window.rdslpNotifications.getSupportMessages) {
+            const msgs = await window.rdslpNotifications.getSupportMessages();
+            messagesHTML = msgs.map(m => {
+                const isBot = m.senderRole === 'bot';
+                const isAdmin = m.senderRole === 'admin';
+                const isOwn = currentUser && m.userId === currentUser.id && !isBot && !isAdmin;
+                const time = m.createdAt ? new Date(m.createdAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : '';
+
+                if (isBot) {
+                    return `
+                        <div class="chat-message" style="background: rgba(99, 102, 241, 0.06); border-radius: 12px; padding: 10px; border-left: 3px solid #6366f1;">
+                            <div class="message-avatar" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff;">🤖</div>
+                            <div class="message-content">
+                                <div class="message-author" style="color: #818cf8; display: flex; align-items: center; gap: 6px;">
+                                    <span>${escapeHtml(m.senderName || 'RDSLP Bot')}</span>
+                                    <span style="background: rgba(99, 102, 241, 0.25); color: #a5b4fc; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">BOT OFICIAL</span>
+                                </div>
+                                <div class="message-text" style="white-space: pre-wrap; line-height: 1.45;">${parseLinksInText(escapeHtml(m.message))}</div>
+                                <div class="message-time">${time}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (isAdmin) {
+                    return `
+                        <div class="chat-message" style="background: rgba(234, 179, 8, 0.08); border-radius: 12px; padding: 10px; border-left: 3px solid #eab308;">
+                            <div class="message-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff;">🛡️</div>
+                            <div class="message-content">
+                                <div class="message-author" style="color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                                    <span>${escapeHtml(m.senderName || 'Administrador')}</span>
+                                    <span style="background: rgba(234, 179, 8, 0.25); color: #fde047; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 700;">ADMIN</span>
+                                </div>
+                                <div class="message-text" style="white-space: pre-wrap; line-height: 1.45;">${parseLinksInText(escapeHtml(m.message))}</div>
+                                <div class="message-time">${time}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const initial = m.userName?.charAt(0).toUpperCase() || 'U';
+                return `
+                    <div class="chat-message own">
+                        <div class="message-avatar">${initial}</div>
+                        <div class="message-content">
+                            <div class="message-author">Tú</div>
+                            <div class="message-text" style="white-space: pre-wrap; line-height: 1.45;">${parseLinksInText(escapeHtml(m.message))}</div>
+                            <div class="message-time">${time}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        container.innerHTML = bannerHTML + (messagesHTML || '<p style="text-align: center; color: var(--text-muted); padding: 20px;">Inicia una consulta de soporte escribiendo un mensaje abajo.</p>');
+        container.scrollTop = container.scrollHeight;
+    }
+
     // Convertir URLs en enlaces clickeables de forma segura
     function parseLinksInText(text) {
         if (!text) return '';
@@ -307,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function () {
         modal?.classList.add('active');
     };
 
-    function sendMessage() {
+    async function sendMessage() {
         const input = document.getElementById('chatInput');
         const text = input ? input.value.trim() : '';
 
@@ -329,6 +459,15 @@ document.addEventListener('DOMContentLoaded', function () {
             sendEventChatMessage(currentEventChat, text, currentAttachedImage);
         } else {
             const activeTab = document.querySelector('.chat-tab.active')?.dataset.chat || 'general';
+            if (activeTab === 'ayuda') {
+                if (window.rdslpNotifications && window.rdslpNotifications.sendSupportMessage) {
+                    await window.rdslpNotifications.sendSupportMessage(text);
+                    if (input) input.value = '';
+                    clearImageAttachment();
+                    loadChatMessages('ayuda');
+                    return;
+                }
+            }
             sendGeneralChatMessage(activeTab, text, currentAttachedImage);
         }
 

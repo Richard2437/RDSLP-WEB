@@ -523,6 +523,20 @@
             }
         });
 
+        const linkAyuda = wrapper.querySelector('#linkToAyudaFooter');
+        if (linkAyuda) {
+            linkAyuda.addEventListener('click', (e) => {
+                dropdown.style.display = 'none';
+                const ayudaTab = document.querySelector('.chat-tab[data-chat="ayuda"]');
+                if (ayudaTab) {
+                    e.preventDefault();
+                    ayudaTab.click();
+                    const chatSection = document.getElementById('chatMessages') || document.querySelector('.community-chat');
+                    if (chatSection) chatSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        }
+
         // Actualizar contador
         updateBellUI();
     }
