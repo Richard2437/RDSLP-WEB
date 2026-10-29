@@ -1979,6 +1979,16 @@ db.usuarios.<span class="function">updateOne</span>(
             });
             localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 30)));
 
+            // Limpiar inputs
+            if (titleInput) titleInput.value = '';
+            if (bodyInput) bodyInput.value = '';
+            if (linkInput) linkInput.value = '';
+
+            // Actualizar campanita de notificaciones de inmediato
+            if (window.rdslpNotifications && window.rdslpNotifications.updateBellUI) {
+                await window.rdslpNotifications.updateBellUI();
+            }
+
             alert('✅ ¡Comunicado global emitido exitosamente!\nHa sido enviado a la campanita de notificaciones de toda la comunidad.');
             renderUserList('broadcast-announcements');
         } catch (err) {

@@ -85,17 +85,73 @@
         // Combinar con almacenamiento local
         let localNotifs = [];
         try {
-            const raw = localStorage.getItem(NOTIF_STORAGE_PREFIX + user.id);
-            localNotifs = raw ? JSON.parse(raw) : [];
+            // 1. Notificaciones directas para este usuario
+            const rawUser = localStorage.getItem(NOTIF_STORAGE_PREFIX + user.id);
+            const userNotifs = rawUser ? JSON.parse(rawUser) : [];
+
+            // 2. Notificaciones globales emitidas a toda la comunidad ('all')
+            const rawAll = localStorage.getItem(NOTIF_STORAGE_PREFIX + 'all');
+            let allNotifs = rawAll ? JSON.parse(rawAll) : [];
+
+            // Recuperar cualquier comunicado global enviado previamente desde el historial
+            try {
+                const rawHistory = localStorage.getItem('rdslp_broadcast_history');
+                const historyList = rawHistory ? JSON.parse(rawHistory) : [];
+                historyList.forEach(h => {
+                    if (!allNotifs.some(item => (item.id && item.id === h.id) || (item.title === h.title && item.body === h.body))) {
+                        allNotifs.push({
+                            id: h.id || ('b_' + Date.now()),
+                            userId: 'all',
+                            senderName: '🛡️ Administrador',
+                            senderAvatar: '📢',
+                            type: 'broadcast',
+                            title: h.title,
+                            body: h.body,
+                            link: h.link || '../Static/comunidad.html',
+                            read: false,
+                            createdAt: h.date || new Date().toISOString()
+                        });
+                    }
+                });
+            } catch (eh) {}
+
+            // 3. Notificaciones para administradores si el usuario actual es admin
+            let adminNotifs = [];
+            if (isCurrentUserAdmin()) {
+                const rawAdmin = localStorage.getItem(NOTIF_STORAGE_PREFIX + 'admins');
+                adminNotifs = rawAdmin ? JSON.parse(rawAdmin) : [];
+            }
+
+            localNotifs = [...userNotifs, ...allNotifs, ...adminNotifs];
         } catch (e) {
             localNotifs = [];
         }
+
+        // Marcar leídas según historial local de leídas de este usuario
+        let readIds = new Set();
+        try {
+            const rawRead = localStorage.getItem('rdslp_read_notifs_' + user.id);
+            if (rawRead) readIds = new Set(JSON.parse(rawRead));
+        } catch (e) {}
+
+        localNotifs = localNotifs.map(n => {
+            if (readIds.has(String(n.id))) {
+                return { ...n, read: true };
+            }
+            return n;
+        });
 
         // Unificar evitando duplicados por id o por title+body
         const map = new Map();
         [...cloudNotifs, ...localNotifs].forEach(item => {
             const key = item.id || (item.title + '_' + item.body);
-            if (!map.has(key)) map.set(key, item);
+            if (!map.has(key)) {
+                // Aplicar estado de lectura local si existe
+                if (readIds.has(String(item.id))) {
+                    item.read = true;
+                }
+                map.set(key, item);
+            }
         });
 
         const sorted = Array.from(map.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -135,16 +191,44 @@
             }
         }
 
-        // Guardar en local del destinatario si aplica
+        // Guardar en local del destinatario
         try {
             const key = NOTIF_STORAGE_PREFIX + payload.userId;
             const existing = JSON.parse(localStorage.getItem(key) || '[]');
-            existing.unshift({ ...payload, id: 'local_' + Date.now() });
+            const notifItem = { ...payload, id: 'local_' + Date.now() };
+            existing.unshift(notifItem);
             localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+
+            // Si es broadcast global ('all'), distribuirlo en cada buzón local conocido
+            if (payload.userId === 'all') {
+                try {
+                    const allUsers = JSON.parse(localStorage.getItem('rdslp_users') || '[]');
+                    allUsers.forEach(u => {
+                        if (u && u.id) {
+                            const uKey = NOTIF_STORAGE_PREFIX + u.id;
+                            const uList = JSON.parse(localStorage.getItem(uKey) || '[]');
+                            uList.unshift(notifItem);
+                            localStorage.setItem(uKey, JSON.stringify(uList.slice(0, 50)));
+                        }
+                    });
+                } catch (errUsers) {}
+
+                // Guardar también en el usuario actual logueado
+                const curr = getCurrentUser();
+                if (curr && curr.id) {
+                    const currKey = NOTIF_STORAGE_PREFIX + curr.id;
+                    const currList = JSON.parse(localStorage.getItem(currKey) || '[]');
+                    currList.unshift(notifItem);
+                    localStorage.setItem(currKey, JSON.stringify(currList.slice(0, 50)));
+                }
+            }
         } catch (e) {}
 
-        // Disparar evento para actualizar UI inmediatamente
+        // Disparar evento y actualizar UI inmediatamente
         window.dispatchEvent(new CustomEvent('rdslp_notification_updated'));
+        try {
+            updateBellUI();
+        } catch (e) {}
         return payload;
     }
 
@@ -161,10 +245,21 @@
         }
 
         try {
-            const key = NOTIF_STORAGE_PREFIX + user.id;
-            const existing = JSON.parse(localStorage.getItem(key) || '[]');
-            const updated = existing.map(n => (n.id == notifId ? { ...n, read: true } : n));
-            localStorage.setItem(key, JSON.stringify(updated));
+            // Registrar ID leído por este usuario
+            const readRaw = localStorage.getItem('rdslp_read_notifs_' + user.id);
+            const readList = readRaw ? JSON.parse(readRaw) : [];
+            if (!readList.includes(String(notifId))) {
+                readList.push(String(notifId));
+                localStorage.setItem('rdslp_read_notifs_' + user.id, JSON.stringify(readList));
+            }
+
+            // Actualizar estado en almacenamiento local
+            [user.id, 'all', 'admins'].forEach(bucket => {
+                const key = NOTIF_STORAGE_PREFIX + bucket;
+                const existing = JSON.parse(localStorage.getItem(key) || '[]');
+                const updated = existing.map(n => (n.id == notifId ? { ...n, read: true } : n));
+                localStorage.setItem(key, JSON.stringify(updated));
+            });
         } catch (e) {}
 
         updateBellUI();
@@ -183,10 +278,16 @@
         }
 
         try {
-            const key = NOTIF_STORAGE_PREFIX + user.id;
-            const existing = JSON.parse(localStorage.getItem(key) || '[]');
-            const updated = existing.map(n => ({ ...n, read: true }));
-            localStorage.setItem(key, JSON.stringify(updated));
+            const notifs = await getNotifications();
+            const readList = notifs.map(n => String(n.id));
+            localStorage.setItem('rdslp_read_notifs_' + user.id, JSON.stringify(readList));
+
+            [user.id, 'all', 'admins'].forEach(bucket => {
+                const key = NOTIF_STORAGE_PREFIX + bucket;
+                const existing = JSON.parse(localStorage.getItem(key) || '[]');
+                const updated = existing.map(n => ({ ...n, read: true }));
+                localStorage.setItem(key, JSON.stringify(updated));
+            });
         } catch (e) {}
 
         updateBellUI();
