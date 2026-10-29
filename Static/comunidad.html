@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -7,7 +7,9 @@
     <meta name="description" content="RDSLP - Comunidad de Programadores. Chat y eventos virtuales.">
     <title>Comunidad | RDSLP</title>
     <link rel="stylesheet" href="../Styles/dashboard.css">
+    <link rel="stylesheet" href="../Styles/common.css">
     <link rel="stylesheet" href="../Styles/comunidad.css">
+    <link rel="stylesheet" href="../Styles/muro.css">
     <link rel="stylesheet" href="../Styles/common-legal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -393,8 +395,107 @@
         </div>
     </div>
 
+    <!-- Modal de Información de la Comunidad y Participantes (Estilo WhatsApp) -->
+    <div class="modal" id="communityInfoModal">
+        <div class="modal-content modal-large" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3>👥 Información del Grupo</h3>
+                <button class="modal-close" id="closeCommunityInfoModal">&times;</button>
+            </div>
+            <div style="padding: 10px 0;">
+                <div class="community-info-hero">
+                    <div class="community-info-avatar" id="modalGroupAvatar">RD</div>
+                    <div class="community-info-title" id="modalGroupTitle">Comunidad</div>
+                    <div id="modalGroupBadges" style="margin-bottom: 10px; display: flex; justify-content: center; gap: 8px;">
+                        <!-- Badges inyectados -->
+                    </div>
+                    <div class="community-info-desc" id="modalGroupDescription">Descripción del grupo</div>
+                    <div class="community-info-meta">
+                        <span>👑 Creador: <strong id="modalGroupCreator" style="color: #fbbf24;">Usuario</strong></span>
+                        <span>👥 Capacidad: <strong id="modalGroupCapacity">0 / 20</strong></span>
+                        <span id="modalGroupDate">📅 Fecha</span>
+                    </div>
+                </div>
+
+                <div class="community-members-section">
+                    <div class="members-section-header">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            Miembros del Grupo (<span id="modalGroupMembersCount">0</span>)
+                        </h4>
+                        <span style="font-size: 11.5px; color: var(--text-muted);">Haz clic en un miembro para ver su perfil</span>
+                    </div>
+                    <div class="community-members-list" id="modalGroupMembersList">
+                        <!-- Lista de participantes inyectada dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="group-admin-bar" id="modalGroupAdminActions">
+                    <!-- Botón para salir o eliminar grupo inyectado -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Perfil de Usuario (Estilo Facebook) -->
+    <div class="modal" id="userProfileModal">
+        <div class="modal-content modal-large profile-modal-content">
+            <div class="modal-header profile-modal-header">
+                <div class="profile-modal-cover">
+                    <div class="profile-modal-avatar" id="modalUserAvatar">U</div>
+                </div>
+                <button class="modal-close" id="closeProfileModal">&times;</button>
+            </div>
+            <div class="profile-modal-body">
+                <div class="profile-hero-meta">
+                    <div class="profile-hero-titles">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h2 id="modalUserName">Usuario</h2>
+                            <span class="user-role-badge" id="modalUserBadge">Usuario</span>
+                        </div>
+                        <p class="profile-handle" id="modalUserHandle">@usuario</p>
+                    </div>
+                    <div class="profile-social-actions" id="modalSocialActions">
+                        <!-- Enlace directo al muro -->
+                    </div>
+                </div>
+
+                <div class="profile-stats-bar">
+                    <div class="p-stat"><strong id="modalStatFollowers">0</strong><span>Seguidores</span></div>
+                    <div class="p-stat"><strong id="modalStatFollowing">0</strong><span>Siguiendo</span></div>
+                    <div class="p-stat"><strong id="modalStatPosts">0</strong><span>Publicaciones</span></div>
+                </div>
+
+                <div class="profile-modal-tabs">
+                    <button type="button" class="p-tab active" data-tab="posts">Publicaciones</button>
+                    <button type="button" class="p-tab" data-tab="about">Acerca de</button>
+                </div>
+
+                <div class="p-tab-content active" id="tabPostsContent">
+                    <div class="user-posts-list" id="modalUserPostsList">
+                        <!-- Publicaciones del usuario -->
+                    </div>
+                </div>
+
+                <div class="p-tab-content" id="tabAboutContent" style="display: none;">
+                    <div class="about-card">
+                        <h4>Biografía</h4>
+                        <p id="modalUserBio" style="color: var(--text-secondary); margin-bottom: 16px;">Sin biografía disponible.</p>
+                        <h4>Intereses y Tecnologías</h4>
+                        <div class="tech-tags-list" id="modalUserTags">
+                            <span class="tech-tag">JavaScript</span>
+                            <span class="tech-tag">Python</span>
+                            <span class="tech-tag">Bases de Datos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../JS/supabase-client.js"></script>
     <script src="../JS/auth.js"></script>
+    <script src="../JS/social-moderation.js"></script>
     <script src="../JS/legal.js"></script>
     <script src="../JS/comunidad.js"></script>
 </body>

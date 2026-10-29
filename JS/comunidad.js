@@ -435,13 +435,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
 
                     ${participantsCount > 0 ? `
-                        <div class="event-participants">
+                        <div class="event-participants" onclick="window.openCommunityInfo(${event.id})" style="cursor: pointer;" title="Toca para ver los miembros y perfiles inscritos">
                             <div class="participants-avatars">${participantsHTML}</div>
-                            <span class="participants-count">${participantsCount} miembro${participantsCount !== 1 ? 's' : ''}</span>
+                            <span class="participants-count" style="text-decoration: underline; text-underline-offset: 2px;">${participantsCount} miembro${participantsCount !== 1 ? 's' : ''} (Ver perfiles)</span>
                         </div>
                     ` : ''}
 
                     <div class="event-actions" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button type="button" class="btn-info-event" onclick="window.openCommunityInfo(${event.id})" title="Ver información del grupo, perfiles inscritos y gestión">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            Info / Miembros
+                        </button>
+
                         ${isJoined
                             ? `
                                 <button class="btn-join-event" onclick="openEventChat(${event.id}, '${escapeHtml(event.title)}')" style="background: var(--accent-primary);">
@@ -465,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             : ''
                         }
 
-                        ${canDelete ? `<button class="btn-delete-event" onclick="deleteEvent(${event.id})" title="Eliminar encuentro">✕</button>` : ''}
+                        ${canDelete ? `<button class="btn-delete-event" onclick="window.deleteCommunityGroup(${event.id})" title="Eliminar comunidad y sala">🗑️</button>` : ''}
                     </div>
                 </div>
             `;
@@ -763,9 +768,172 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     window.deleteEvent = function (eventId) {
+        window.deleteCommunityGroup(eventId);
+    };
+
+    // =====================================================
+    // GESTIÓN DE COMUNIDAD ESTILO WHATSAPP (INFO, MIEMBROS, EXPULSIÓN)
+    // =====================================================
+    window.openCommunityInfo = function (eventId) {
+        const events = community.getEvents() || [];
+        const event = events.find(e => String(e.id) === String(eventId));
+        if (!event) {
+            alert('No se encontró la información de esta comunidad.');
+            return;
+        }
+
+        const modal = document.getElementById('communityInfoModal');
+        if (!modal) return;
+
+        const isOrganizer = currentUser && (String(event.organizer) === String(currentUser.id) || String(event.organizer) === String(currentUser.email));
+        const isAdmin = auth.hasPermission('canManageEvents') || (currentUser && currentUser.role === 'admin');
+        const isJoined = currentUser && (isOrganizer || (event.participants && event.participants.some(p => String(p.id) === String(currentUser.id))));
+
+        // Avatar inicial
+        const avatarEl = document.getElementById('modalGroupAvatar');
+        if (avatarEl) avatarEl.textContent = (event.title ? event.title.substring(0, 2) : 'RD').toUpperCase();
+
+        // Título y descripción
+        const titleEl = document.getElementById('modalGroupTitle');
+        if (titleEl) titleEl.textContent = event.title;
+
+        const descEl = document.getElementById('modalGroupDescription');
+        if (descEl) descEl.textContent = event.description || 'Sin descripción de la comunidad.';
+
+        // Badges
+        const badgesEl = document.getElementById('modalGroupBadges');
+        if (badgesEl) {
+            const isPrivate = event.accessType === 'private';
+            badgesEl.innerHTML = `
+                ${isPrivate
+                    ? '<span class="badge-access badge-private">🔒 Sala Privada</span>'
+                    : '<span class="badge-access badge-public">🟢 Sala Pública</span>'
+                }
+                <span class="badge-access" style="background: rgba(99, 102, 241, 0.15); color: #818cf8; text-transform: uppercase;">
+                    ${escapeHtml(event.category || 'general')}
+                </span>
+            `;
+        }
+
+        // Meta creador y capacidad
+        const creatorEl = document.getElementById('modalGroupCreator');
+        if (creatorEl) creatorEl.textContent = event.organizerName || 'Comunidad';
+
+        const capacityEl = document.getElementById('modalGroupCapacity');
+        const participants = event.participants || [];
+        if (capacityEl) capacityEl.textContent = `${participants.length} / ${event.maxParticipants || 20}`;
+
+        const dateEl = document.getElementById('modalGroupDate');
+        if (dateEl && event.date) {
+            dateEl.textContent = `📅 ${new Date(event.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+        }
+
+        const countEl = document.getElementById('modalGroupMembersCount');
+        if (countEl) countEl.textContent = participants.length;
+
+        // Renderizado de lista de participantes
+        const listEl = document.getElementById('modalGroupMembersList');
+        if (listEl) {
+            if (participants.length === 0) {
+                listEl.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px;">No hay miembros registrados aún.</p>';
+            } else {
+                listEl.innerHTML = participants.map(p => {
+                    const isGroupCreator = String(p.id) === String(event.organizer) || p.role === 'organizer';
+                    const isSelf = currentUser && String(p.id) === String(currentUser.id);
+                    const initial = (p.name ? p.name.charAt(0) : 'U').toUpperCase();
+
+                    // Botón para expulsar: solo visible para el creador del grupo o un admin general, y nunca contra sí mismo o el creador
+                    const canKick = (isOrganizer || isAdmin) && !isGroupCreator && !isSelf;
+
+                    return `
+                        <div class="group-member-item">
+                            <div class="member-left" onclick="window.openUserProfileModal('${p.id}', '${escapeHtml(p.name)}')" title="Ver perfil de ${escapeHtml(p.name)}">
+                                <div class="member-avatar">${initial}</div>
+                                <div class="member-details">
+                                    <div class="member-name">
+                                        <span>${escapeHtml(p.name)}</span>
+                                        ${isSelf ? '<span style="color: #818cf8; font-size: 11px;">(Tú)</span>' : ''}
+                                        ${isGroupCreator ? '<span class="badge-creator">👑 Creador del Grupo</span>' : ''}
+                                    </div>
+                                    <div class="member-sub">${isGroupCreator ? 'Administrador principal del grupo' : 'Miembro de la sala'}</div>
+                                </div>
+                            </div>
+                            <div class="member-actions">
+                                <button type="button" class="btn-view-member-profile" onclick="window.openUserProfileModal('${p.id}', '${escapeHtml(p.name)}')" title="Ver perfil completo">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                    Perfil
+                                </button>
+                                ${canKick ? `
+                                    <button type="button" class="btn-kick-member" onclick="window.kickMemberFromCommunity(${event.id}, '${p.id}', '${escapeHtml(p.name)}')" title="Sacar del grupo">
+                                        ❌ Sacar
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Acciones administrativas inferiores
+        const actionsEl = document.getElementById('modalGroupAdminActions');
+        if (actionsEl) {
+            let actionsHtml = '';
+            if (isOrganizer || isAdmin) {
+                actionsHtml += `
+                    <button type="button" class="btn-delete-group" onclick="window.deleteCommunityGroup(${event.id})">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Eliminar Comunidad y Grupo
+                    </button>
+                `;
+            } else if (isJoined) {
+                actionsHtml += `
+                    <button type="button" class="btn-leave-group" onclick="window.leaveCommunityGroup(${event.id})">
+                        🚪 Salir de la Comunidad
+                    </button>
+                `;
+            }
+
+            actionsHtml += `
+                <button type="button" class="btn-cancel" onclick="window.closeCommunityInfoModal()">Cerrar</button>
+            `;
+            actionsEl.innerHTML = actionsHtml;
+        }
+
+        modal.classList.add('active');
+    };
+
+    window.closeCommunityInfoModal = function () {
+        const modal = document.getElementById('communityInfoModal');
+        if (modal) modal.classList.remove('active');
+    };
+
+    // Expulsar a un participante (solo creador o admin)
+    window.kickMemberFromCommunity = function (eventId, targetUserId, memberName) {
         if (!currentUser) return;
-        if (confirm('¿Eliminar este encuentro comunitario?')) {
-            community.deleteEvent(eventId, currentUser.id);
+        if (!confirm(`¿Confirmas que deseas sacar a "${memberName}" de este grupo? Ya no tendrá acceso a la comunidad ni a sus salas.`)) {
+            return;
+        }
+
+        const res = community.kickParticipant(eventId, targetUserId, currentUser.id);
+        if (res.success) {
+            alert(`✓ "${memberName}" ha sido retirado del grupo.`);
+            window.openCommunityInfo(eventId);
+            loadEvents();
+        } else {
+            alert(res.message || 'Error al expulsar al miembro.');
+        }
+    };
+
+    // Eliminar la comunidad y su chat
+    window.deleteCommunityGroup = function (eventId) {
+        if (!currentUser) return;
+        if (!confirm('⚠️ ¿Estás seguro de eliminar esta comunidad y grupo por completo? Esta acción es irreversible y borrará el chat y a todos los participantes.')) {
+            return;
+        }
+
+        const res = community.deleteEvent(eventId, currentUser.id);
+        if (res.success) {
             const chats = JSON.parse(localStorage.getItem('rdslp_event_chats') || '{}');
             delete chats[eventId];
             localStorage.setItem('rdslp_event_chats', JSON.stringify(chats));
@@ -773,9 +941,123 @@ document.addEventListener('DOMContentLoaded', function () {
             if (currentEventChat === eventId) {
                 closeEventChat();
             }
+
+            window.closeCommunityInfoModal();
             loadEvents();
+            alert('✓ Comunidad eliminada exitosamente.');
+        } else {
+            alert(res.message || 'No se pudo eliminar la comunidad.');
         }
     };
+
+    window.leaveCommunityGroup = function (eventId) {
+        if (!confirm('¿Deseas salir de este grupo comunitario?')) return;
+        window.leaveEvent(eventId);
+        window.closeCommunityInfoModal();
+    };
+
+    // =====================================================
+    // MODAL DE PERFIL DE USUARIO
+    // =====================================================
+    window.openUserProfileModal = function (targetUserId, displayName) {
+        const modal = document.getElementById('userProfileModal');
+        if (!modal) return;
+
+        const avatarEl = document.getElementById('modalUserAvatar');
+        const nameEl = document.getElementById('modalUserName');
+        const handleEl = document.getElementById('modalUserHandle');
+        const badgeEl = document.getElementById('modalUserBadge');
+        const socialActionsEl = document.getElementById('modalSocialActions');
+        const statFollowersEl = document.getElementById('modalStatFollowers');
+        const statFollowingEl = document.getElementById('modalStatFollowing');
+        const statPostsEl = document.getElementById('modalStatPosts');
+
+        const initial = (displayName.charAt(0) || 'U').toUpperCase();
+        if (avatarEl) avatarEl.textContent = initial;
+        if (nameEl) nameEl.textContent = displayName;
+        if (handleEl) handleEl.textContent = `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
+
+        // Obtener rol si está en los usuarios
+        let targetRole = 'user';
+        try {
+            const allUsers = auth.getAllUsers ? auth.getAllUsers() : [];
+            const found = allUsers.find(u => String(u.id) === String(targetUserId) || u.name === displayName);
+            if (found && found.role) targetRole = found.role;
+        } catch (e) {}
+
+        if (badgeEl) {
+            badgeEl.textContent = targetRole === 'admin' ? 'ADMINISTRADOR' : (targetRole === 'moderator' ? 'MODERADOR' : 'USUARIO');
+            badgeEl.className = 'user-role-badge ' + (targetRole === 'admin' ? 'admin' : (targetRole === 'moderator' ? 'moderator' : ''));
+        }
+
+        const mgr = window.SocialModerationManager;
+        const followersCount = mgr ? mgr.getFollowersCount(targetUserId) : 0;
+        const followingCount = mgr ? mgr.getFollowingCount(targetUserId) : 0;
+
+        const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
+        const userPosts = posts.filter(p => String(p.authorId) === String(targetUserId) || p.authorName === displayName);
+
+        if (statFollowersEl) statFollowersEl.textContent = followersCount;
+        if (statFollowingEl) statFollowingEl.textContent = followingCount;
+        if (statPostsEl) statPostsEl.textContent = userPosts.length;
+
+        if (socialActionsEl) {
+            socialActionsEl.innerHTML = `
+                <a href="muro.html?userId=${encodeURIComponent(targetUserId)}&userName=${encodeURIComponent(displayName)}" class="btn-profile-follow" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    Ver en el Muro
+                </a>
+            `;
+        }
+
+        const userPostsListEl = document.getElementById('modalUserPostsList');
+        if (userPostsListEl) {
+            if (userPosts.length === 0) {
+                userPostsListEl.innerHTML = `
+                    <div style="text-align: center; padding: 25px; color: var(--text-muted);">
+                        <p>Este usuario no tiene publicaciones compartidas aún.</p>
+                    </div>
+                `;
+            } else {
+                userPostsListEl.innerHTML = userPosts.map(p => `
+                    <div class="user-profile-post-card" style="padding: 12px; margin-bottom: 10px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px;">
+                            <span style="font-weight: 600; color: #818cf8; text-transform: uppercase;">${escapeHtml(p.type || 'post')}</span>
+                            <span>${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : ''}</span>
+                        </div>
+                        <p style="font-size: 13.5px; color: var(--text-primary); margin: 0; line-height: 1.4;">${escapeHtml(p.content)}</p>
+                    </div>
+                `).join('');
+            }
+        }
+
+        switchComunidadProfileTab('posts');
+        modal.classList.add('active');
+    };
+
+    function switchComunidadProfileTab(tabName) {
+        document.querySelectorAll('#userProfileModal .p-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.tab === tabName);
+        });
+
+        const tabPosts = document.getElementById('tabPostsContent');
+        const tabAbout = document.getElementById('tabAboutContent');
+
+        if (tabPosts) tabPosts.style.display = tabName === 'posts' ? 'block' : 'none';
+        if (tabAbout) tabAbout.style.display = tabName === 'about' ? 'block' : 'none';
+    }
+
+    // Vincular pestañas y botones de cierre de modales
+    document.getElementById('closeCommunityInfoModal')?.addEventListener('click', window.closeCommunityInfoModal);
+    document.getElementById('closeProfileModal')?.addEventListener('click', () => {
+        document.getElementById('userProfileModal')?.classList.remove('active');
+    });
+
+    document.querySelectorAll('#userProfileModal .p-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            switchComunidadProfileTab(this.dataset.tab);
+        });
+    });
 
     function escapeHtml(text) {
         if (!text) return '';

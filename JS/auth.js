@@ -814,13 +814,38 @@ class CommunityManager {
 
     leaveEvent(eventId, userId) {
         const events = this.getEvents();
-        const eventIndex = events.findIndex(e => e.id === eventId);
+        const eventIndex = events.findIndex(e => String(e.id) === String(eventId));
 
         if (eventIndex === -1) return { success: false, message: 'Evento no encontrado' };
 
-        events[eventIndex].participants = (events[eventIndex].participants || []).filter(p => p.id !== userId);
+        events[eventIndex].participants = (events[eventIndex].participants || []).filter(p => String(p.id) !== String(userId));
         localStorage.setItem('rdslp_events', JSON.stringify(events));
         return { success: true };
+    }
+
+    // Expulsar miembro de la comunidad (solo Creador o Administrador)
+    kickParticipant(eventId, targetUserId, currentUserId) {
+        const events = this.getEvents();
+        const eventIndex = events.findIndex(e => String(e.id) === String(eventId));
+        if (eventIndex === -1) return { success: false, message: 'Comunidad no encontrada.' };
+
+        const event = events[eventIndex];
+        const auth = window.authManager || new AuthManager();
+        const isOrganizer = (String(event.organizer) === String(currentUserId) || (auth.currentUser && String(event.organizer) === String(auth.currentUser.email)));
+        const isAdmin = auth.hasPermission('canManageEvents') || (auth.currentUser && auth.currentUser.role === 'admin');
+
+        if (!isOrganizer && !isAdmin) {
+            return { success: false, message: 'Permiso denegado: solo el Creador de la comunidad o un Administrador puede expulsar miembros.' };
+        }
+
+        if (String(event.organizer) === String(targetUserId)) {
+            return { success: false, message: 'No es posible expulsar al Creador del grupo.' };
+        }
+
+        event.participants = (event.participants || []).filter(p => String(p.id) !== String(targetUserId));
+        events[eventIndex] = event;
+        localStorage.setItem('rdslp_events', JSON.stringify(events));
+        return { success: true, message: 'Miembro retirado exitosamente de la comunidad.' };
     }
 
     deleteEvent(eventId, userId) {
