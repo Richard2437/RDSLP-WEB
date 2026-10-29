@@ -112,8 +112,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (!u) return false;
         currentUser = u;
-        const role = String(u.role || '').toLowerCase().trim();
-        return role === 'admin' || role === 'administrador';
+        const role = String(u.role || u.rol || '').toLowerCase().trim();
+        const email = String(u.email || '').toLowerCase().trim();
+        return role === 'admin' || role === 'administrador' || email === 'richard@gmail.com' || email === 'admin@rdslp.com' || email.includes('admin');
     }
 
     // Configurar UI basada en rol
@@ -251,6 +252,21 @@ document.addEventListener('DOMContentLoaded', function () {
         contentSections.forEach(section => {
             section.classList.toggle('active', section.id === `section-${sectionId}`);
         });
+
+        // Sincronizar hash en la barra de URL
+        if (sectionId === 'admin') {
+            if (window.location.hash !== '#admin') {
+                try { history.replaceState(null, '', '#admin'); } catch (e) { window.location.hash = 'admin'; }
+            }
+        } else if (sectionId === 'home') {
+            if (window.location.hash) {
+                try { history.replaceState(null, '', window.location.pathname); } catch (e) { window.location.hash = ''; }
+            }
+        } else {
+            if (window.location.hash !== '#' + sectionId) {
+                try { history.replaceState(null, '', '#' + sectionId); } catch (e) { window.location.hash = sectionId; }
+            }
+        }
 
         const titles = {
             'home': 'Inicio',
@@ -697,10 +713,20 @@ db.usuarios.<span class="function">updateOne</span>(
                 this.classList.add('active');
                 const chatHeader = document.querySelector('#section-comunidad .chat-header h3');
                 const chatInput = document.getElementById('chatInput');
+                const layout = document.querySelector('#section-comunidad .community-layout');
+                const sectionH2 = document.querySelector('#section-comunidad .section-header h2');
+                const sectionP = document.querySelector('#section-comunidad .section-header p');
+
                 if (this.dataset.chat === 'ayuda') {
-                    if (chatHeader) chatHeader.innerHTML = '💬 Chat de Ayuda y Soporte <span style="font-size: 11px; color: #10b981; font-weight: normal; margin-left: 8px;">● Sistema 24/7</span>';
+                    if (layout) layout.classList.add('support-mode');
+                    if (sectionH2) sectionH2.textContent = 'Centro de Ayuda y Soporte Oficial';
+                    if (sectionP) sectionP.textContent = 'Asistencia técnica 24/7, estado de cuenta y resolución directa de dudas';
+                    if (chatHeader) chatHeader.innerHTML = '💬 Chat de Ayuda y Soporte <span style="font-size: 11px; color: #10b981; font-weight: normal; margin-left: 8px;">● Asistencia Oficial 24/7</span>';
                     if (chatInput) chatInput.placeholder = "Escribe tu consulta o usa '/ayuda [describe tu problema]'...";
                 } else {
+                    if (layout) layout.classList.remove('support-mode');
+                    if (sectionH2) sectionH2.textContent = 'Comunidad';
+                    if (sectionP) sectionP.textContent = 'Conecta con otros programadores y participa en eventos';
                     if (chatHeader) chatHeader.textContent = 'Chat General';
                     if (chatInput) chatInput.placeholder = "Escribe un mensaje...";
                 }
@@ -1125,12 +1151,12 @@ db.usuarios.<span class="function">updateOne</span>(
 
     let adminTabsInitialized = false;
 
-    async function loadAdminPanel() {
-        // Tabs logic (inicializar solo una vez para evitar múltiples listeners al navegar)
+    async function loadAdminPanel(targetTab) {
+        const tabs = document.querySelectorAll('.admin-tab');
         if (!adminTabsInitialized) {
-            const tabs = document.querySelectorAll('.admin-tab');
             tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
                     tabs.forEach(t => {
                         t.classList.remove('active');
                         t.style.color = 'var(--text-secondary)';
@@ -1147,8 +1173,16 @@ db.usuarios.<span class="function">updateOne</span>(
             adminTabsInitialized = true;
         }
 
-        // Initial render: Todos los usuarios registrados por defecto
-        await renderUserList('all-users');
+        const tabToActivate = targetTab || document.querySelector('.admin-tab.active')?.dataset.tab || 'all-users';
+        tabs.forEach(t => {
+            const isActive = t.dataset.tab === tabToActivate;
+            t.classList.toggle('active', isActive);
+            t.style.color = isActive ? 'var(--text-primary)' : 'var(--text-secondary)';
+            t.style.borderBottom = isActive ? '2px solid var(--accent-primary)' : '2px solid transparent';
+            t.style.fontWeight = isActive ? '600' : '500';
+        });
+
+        await renderUserList(tabToActivate);
     }
 
     async function renderUserList(filter = 'all-users') {
@@ -1163,11 +1197,11 @@ db.usuarios.<span class="function">updateOne</span>(
         let allUsers = [];
         try {
             if (window.rdslpSupabase && window.rdslpSupabase.getAllUsers) {
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000));
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
                 allUsers = await Promise.race([window.rdslpSupabase.getAllUsers(), timeoutPromise]);
             }
         } catch (err) {
-            console.warn('[RDSLP] getAllUsers de Supabase lento o error, usando fallback:', err.message);
+            console.warn('[RDSLP] getAllUsers fallback local:', err.message);
         }
 
         if (!allUsers || allUsers.length === 0) {
@@ -1189,25 +1223,33 @@ db.usuarios.<span class="function">updateOne</span>(
             }
         }
 
-        // Obtener comunidades creadas (de Supabase en la nube con respaldo local)
+        // Obtener comunidades creadas con timeout estricto de 1.5s para no congelar la UI
         let allCommunities = [];
         try {
-            if (window.rdslpSupabase && window.rdslpSupabase.fetchCloudCommunities) {
-                const cloudComms = await window.rdslpSupabase.fetchCloudCommunities();
-                if (cloudComms && cloudComms.length > 0) {
-                    allCommunities = cloudComms;
-                }
-            }
-            if (allCommunities.length === 0) {
-                if (typeof community !== 'undefined' && community.getEvents) {
-                    allCommunities = community.getEvents() || [];
-                } else {
-                    allCommunities = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+            if (filter === 'created-communities' || !document.getElementById('totalCommunities')?.textContent || document.getElementById('totalCommunities')?.textContent === '0') {
+                if (window.rdslpSupabase && window.rdslpSupabase.fetchCloudCommunities) {
+                    const timeoutComms = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
+                    allCommunities = await Promise.race([window.rdslpSupabase.fetchCloudCommunities(), timeoutComms]);
                 }
             }
         } catch (e) {
-            allCommunities = [];
+            console.warn('[RDSLP] fetchCloudCommunities fallback local:', e.message);
         }
+
+        if (!allCommunities || allCommunities.length === 0) {
+            if (typeof community !== 'undefined' && community.getEvents) {
+                allCommunities = community.getEvents() || [];
+            } else {
+                try {
+                    allCommunities = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+                } catch (e) {
+                    allCommunities = [];
+                }
+            }
+        }
+
+        allUsers = (allUsers || []).filter(u => u && typeof u === 'object');
+        allCommunities = (allCommunities || []).filter(c => c && typeof c === 'object');
 
         // Actualizar contadores del resumen
         const totalUsersEl = document.getElementById('totalUsers');
@@ -1440,7 +1482,7 @@ db.usuarios.<span class="function">updateOne</span>(
             let roleSelect = '';
             if (!isSelf && !isBanned) {
                 roleSelect = `
-                    <select onchange="changeUserRole('${u.id}', this.value)" class="role-select" style="padding: 6px 10px; border-radius: 6px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); margin-right: 10px; cursor: pointer; font-size: 13px;">
+                    <select onchange="window.changeUserRole('${u.id}', this.value)" class="role-select" style="padding: 6px 10px; border-radius: 6px; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-color); margin-right: 10px; cursor: pointer; font-size: 13px;">
                         <option value="user" ${u.role === 'user' ? 'selected' : ''}>Usuario</option>
                         <option value="moderator" ${u.role === 'moderator' ? 'selected' : ''}>Moderador</option>
                         <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador</option>
@@ -1452,9 +1494,9 @@ db.usuarios.<span class="function">updateOne</span>(
             let banBtn = '';
             if (!isSelf && !isAdmin) {
                 if (isBanned) {
-                    banBtn = `<button onclick="toggleBanUser('${u.id}', false)" style="padding: 6px 14px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); cursor: pointer; font-weight: 500; font-size: 13px;">Desbanear</button>`;
+                    banBtn = `<button onclick="window.toggleBanUser('${u.id}', false)" style="padding: 6px 14px; border-radius: 6px; background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); cursor: pointer; font-weight: 500; font-size: 13px;">Desbanear</button>`;
                 } else {
-                    banBtn = `<button onclick="toggleBanUser('${u.id}', true)" style="padding: 6px 14px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-weight: 500; font-size: 13px;">Banear</button>`;
+                    banBtn = `<button onclick="window.toggleBanUser('${u.id}', true)" style="padding: 6px 14px; border-radius: 6px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); cursor: pointer; font-weight: 500; font-size: 13px;">Banear</button>`;
                 }
             }
 

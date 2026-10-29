@@ -1005,6 +1005,20 @@ body {
     display: grid;
     grid-template-columns: 1fr 400px;
     gap: 30px;
+    transition: all 0.3s ease;
+}
+
+.community-layout.support-mode {
+    grid-template-columns: 1fr !important;
+}
+
+.community-layout.support-mode .community-events {
+    display: none !important;
+}
+
+.community-layout.support-mode .community-chat {
+    max-width: 100% !important;
+    min-height: 640px;
 }
 
 .community-chat {

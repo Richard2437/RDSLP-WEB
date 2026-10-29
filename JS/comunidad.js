@@ -76,10 +76,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentEventChat = null;
                 const header = document.querySelector('.chat-header h3');
                 const chatInput = document.getElementById('chatInput');
+                const layout = document.querySelector('.community-layout');
+                const sectionH2 = document.querySelector('.comunidad-container .section-header h2, .section-header h2');
+                const sectionP = document.querySelector('.comunidad-container .section-header p, .section-header p');
+
                 if (this.dataset.chat === 'ayuda') {
-                    if (header) header.innerHTML = '💬 Chat de Ayuda y Soporte <span style="font-size: 11px; color: #10b981; font-weight: normal; margin-left: 8px;">● Sistema 24/7</span>';
+                    if (layout) layout.classList.add('support-mode');
+                    if (sectionH2) sectionH2.textContent = 'Centro de Ayuda y Soporte Oficial';
+                    if (sectionP) sectionP.textContent = 'Asistencia técnica 24/7, estado de cuenta y resolución directa de dudas';
+                    if (header) header.innerHTML = '💬 Chat de Ayuda y Soporte <span style="font-size: 11px; color: #10b981; font-weight: normal; margin-left: 8px;">● Asistencia Oficial 24/7</span>';
                     if (chatInput) chatInput.placeholder = "Escribe tu duda o usa '/ayuda [describe tu problema]'...";
                 } else {
+                    if (layout) layout.classList.remove('support-mode');
+                    if (sectionH2) sectionH2.textContent = 'Conecta con otros Programadores';
+                    if (sectionP) sectionP.textContent = 'Chatea y participa en eventos virtuales';
                     if (header) header.textContent = 'Chat General';
                     if (chatInput) chatInput.placeholder = "Escribe un mensaje...";
                 }
@@ -766,6 +776,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (chatHeader) {
             chatHeader.textContent = 'Chat General';
         }
+        const layout = document.querySelector('.community-layout');
+        if (layout) layout.classList.remove('support-mode');
         document.querySelector('.chat-tab[data-chat="general"]')?.classList.add('active');
         loadChatMessages('general');
     };
