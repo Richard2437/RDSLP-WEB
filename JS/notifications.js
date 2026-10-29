@@ -462,11 +462,12 @@
         wrapper.id = 'notificationsWrapper';
         wrapper.innerHTML = `
             <button type="button" class="btn-notification-bell" id="btnNotificationBell" title="Ver Notificaciones" aria-label="Notificaciones">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="bell-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
                 <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                <span class="bell-ping-ring"></span>
             </button>
             <div class="notifications-dropdown" id="notificationsDropdown" style="display: none;">
                 <div class="notifications-header">
@@ -526,23 +527,45 @@
         updateBellUI();
     }
 
-    // Actualizar badge y contador de la campanita
+    let lastKnownUnreadCount = -1;
+
+    // Actualizar badge y efecto luminoso ("alumbre") de la campanita
     async function updateBellUI() {
+        const btnBell = document.getElementById('btnNotificationBell');
         const badge = document.getElementById('notificationBadge');
         const unreadCountBadge = document.getElementById('notifUnreadCountBadge');
-        if (!badge) return;
+        if (!btnBell) return;
 
         const notifs = await getNotifications();
         const unreadCount = notifs.filter(n => !n.read).length;
 
         if (unreadCount > 0) {
-            badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
-            badge.style.display = 'flex';
+            if (badge) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.style.display = 'flex';
+            }
             if (unreadCountBadge) unreadCountBadge.textContent = unreadCount;
+
+            // Activar resplandor constante ("alumbre")
+            btnBell.classList.add('has-unread');
+
+            // Si llegó una nueva notificación desde la última comprobación, lanzar destello animado
+            if (lastKnownUnreadCount >= 0 && unreadCount > lastKnownUnreadCount) {
+                btnBell.classList.remove('just-arrived');
+                void btnBell.offsetWidth; // reiniciar animación
+                btnBell.classList.add('just-arrived');
+                setTimeout(() => {
+                    btnBell.classList.remove('just-arrived');
+                }, 1200);
+            }
         } else {
-            badge.style.display = 'none';
+            if (badge) badge.style.display = 'none';
             if (unreadCountBadge) unreadCountBadge.textContent = '0';
+            btnBell.classList.remove('has-unread');
+            btnBell.classList.remove('just-arrived');
         }
+
+        lastKnownUnreadCount = unreadCount;
     }
 
     // Renderizar lista en el dropdown

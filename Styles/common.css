@@ -679,49 +679,183 @@ html.role-user .user-role-badge,
 
 .btn-notification-bell {
     position: relative;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 13px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--text-primary, #ffffff);
-    transition: all 0.2s ease;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: visible;
+}
+
+.btn-notification-bell svg,
+.btn-notification-bell .bell-icon {
+    width: 22px;
+    height: 22px;
+    stroke: #ffffff;
+    color: #ffffff;
+    stroke-width: 2.2px;
+    transition: transform 0.2s ease;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .btn-notification-bell:hover {
-    background: rgba(99, 102, 241, 0.15);
-    border-color: var(--accent-primary, #6366f1);
-    color: var(--accent-primary, #6366f1);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+    border-color: rgba(255, 255, 255, 0.45);
+    color: #ffffff;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.55);
+}
+
+.btn-notification-bell:active {
+    transform: translateY(0) scale(0.97);
+}
+
+/* Efecto Luminoso ("Alumbre") cuando hay mensajes o notificaciones sin leer */
+.btn-notification-bell.has-unread {
+    background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    border-color: rgba(255, 255, 255, 0.4);
+    animation: bellLuminousGlow 2s infinite alternate ease-in-out;
+}
+
+.btn-notification-bell.has-unread svg,
+.btn-notification-bell.has-unread .bell-icon {
+    animation: bellRingWiggle 3.5s infinite ease-in-out;
+    transform-origin: top center;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
+}
+
+/* Destello explosivo al llegar un mensaje nuevo en tiempo real */
+.btn-notification-bell.just-arrived {
+    animation: bellArrivalBurst 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Anillo de onda expansiva de luz */
+.bell-ping-ring {
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 16px;
+    border: 2px solid #a5b4fc;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.btn-notification-bell.has-unread .bell-ping-ring {
+    animation: bellPingWave 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes bellLuminousGlow {
+    0% {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2),
+                    0 0 12px rgba(99, 102, 241, 0.65),
+                    0 0 24px rgba(129, 140, 248, 0.4);
+        filter: brightness(1);
+    }
+    50% {
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5),
+                    0 0 24px rgba(129, 140, 248, 0.95),
+                    0 0 45px rgba(99, 102, 241, 0.85),
+                    0 0 65px rgba(79, 70, 229, 0.5);
+        filter: brightness(1.22);
+    }
+    100% {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2),
+                    0 0 12px rgba(99, 102, 241, 0.65),
+                    0 0 24px rgba(129, 140, 248, 0.4);
+        filter: brightness(1);
+    }
+}
+
+@keyframes bellArrivalBurst {
+    0% {
+        transform: scale(0.9);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.9);
+    }
+    40% {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 12px rgba(129, 140, 248, 0),
+                    0 0 35px rgba(255, 255, 255, 0.95),
+                    0 0 70px rgba(99, 102, 241, 1);
+        filter: brightness(1.4);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 16px rgba(99, 102, 241, 0.8);
+        filter: brightness(1);
+    }
+}
+
+@keyframes bellRingWiggle {
+    0%, 82%, 100% {
+        transform: rotate(0deg);
+    }
+    84% {
+        transform: rotate(-16deg);
+    }
+    86% {
+        transform: rotate(16deg);
+    }
+    88% {
+        transform: rotate(-12deg);
+    }
+    90% {
+        transform: rotate(12deg);
+    }
+    92% {
+        transform: rotate(-6deg);
+    }
+    94% {
+        transform: rotate(4deg);
+    }
+    96% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes bellPingWave {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.9;
+    }
+    70%, 100% {
+        transform: scale(1.45);
+        opacity: 0;
+    }
 }
 
 .notification-badge {
     position: absolute;
-    top: -2px;
-    right: -2px;
+    top: -5px;
+    right: -5px;
     background: #ef4444;
-    color: white;
+    color: #ffffff;
     font-size: 10.5px;
     font-weight: 700;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 9px;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--bg-card, #171717);
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
-    animation: pulseBadge 2s infinite ease-in-out;
+    border: 2px solid #0f172a;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.85);
+    z-index: 2;
+    animation: pulseBadge 1.8s infinite ease-in-out;
 }
 
 @keyframes pulseBadge {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
+    50% { transform: scale(1.15); }
 }
 
 .notifications-dropdown {
