@@ -42,7 +42,74 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         window.addEventListener('userSynced', handleUserUpdate);
         window.addEventListener('rdslp_user_updated', handleUserUpdate);
+
+        // Revisar parámetros de URL (para navegación directa desde notificaciones)
+        checkUrlParams();
+        window.addEventListener('hashchange', checkUrlParams);
     }
+
+    // Funciones para responder a clics de notificaciones
+    function checkUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash || '';
+
+        // 1. Abrir perfil del usuario que te siguió
+        const openProfileId = params.get('openProfile');
+        const openProfileName = params.get('name') || 'Usuario';
+        if (openProfileId) {
+            setTimeout(() => {
+                if (typeof window.openUserProfile === 'function') {
+                    window.openUserProfile(openProfileId, openProfileName);
+                }
+            }, 300);
+        }
+
+        // 2. Abrir chat privado directo del mensaje que te enviaron
+        const openChatId = params.get('openChat');
+        const openChatName = params.get('chatName') || params.get('name') || 'Usuario';
+        if (openChatId) {
+            setTimeout(() => {
+                if (typeof window.openDirectChat === 'function') {
+                    window.openDirectChat(openChatId, openChatName);
+                }
+            }, 350);
+        }
+
+        // 3. Resaltar y hacer scroll a la publicación (notificación de Like o Comentario)
+        const targetPostId = params.get('postId') || (hash.startsWith('#post-') ? hash.replace('#post-', '') : null);
+        const openComments = params.get('openComments') === 'true';
+        if (targetPostId) {
+            setTimeout(() => {
+                if (typeof window.highlightAndScrollToPost === 'function') {
+                    window.highlightAndScrollToPost(targetPostId);
+                }
+                if (openComments && typeof window.toggleComments === 'function') {
+                    window.toggleComments(targetPostId);
+                }
+            }, 400);
+        }
+    }
+
+    window.highlightAndScrollToPost = function (postId, attempts = 0) {
+        if (!postId) return;
+        const el = document.getElementById('post-' + postId) || document.querySelector(`[data-post-id="${postId}"]`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.remove('post-highlighted');
+            void el.offsetWidth; // reiniciar animación
+            el.classList.add('post-highlighted');
+            setTimeout(() => {
+                el.classList.remove('post-highlighted');
+            }, 3500);
+        } else if (attempts < 6) {
+            // Reintentar si el feed se está renderizando desde Supabase o localStorage
+            setTimeout(() => {
+                if (typeof window.highlightAndScrollToPost === 'function') {
+                    window.highlightAndScrollToPost(postId, attempts + 1);
+                }
+            }, 350);
+        }
+    };
 
     function checkAuth() {
         if (!auth.isAuthenticated()) {
@@ -330,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         return `
-            <div class="post-card" data-post-id="${post.id}">
+            <div class="post-card" id="post-${post.id}" data-post-id="${post.id}">
                 <div class="post-header">
                     <div class="post-author" onclick="window.openUserProfile('${post.authorId}', '${escapeHtml(post.authorName)}')" style="cursor: pointer;" title="Ver perfil de ${escapeHtml(post.authorName)}">
                         <div class="post-author-avatar">${initial}</div>
@@ -435,6 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!post.likes) post.likes = [];
 
             const idx = post.likes.indexOf(currentUser.id);
+            const isNowLiked = idx === -1;
             if (idx > -1) {
                 post.likes.splice(idx, 1);
             } else {
@@ -447,6 +515,28 @@ document.addEventListener('DOMContentLoaded', function () {
             // Sincronizar actualización de likes a Supabase
             if (window.rdslpSupabase && window.rdslpSupabase.updateCloudPost) {
                 window.rdslpSupabase.updateCloudPost(post.cloudId || post.id, post).catch(() => {});
+            }
+
+            // Notificación al autor de la publicación si se dio Me Gusta (para que lo mande a su post al dar clic)
+            if (isNowLiked && post.authorId && String(post.authorId) !== String(currentUser.id)) {
+                if (window.rdslpNotifications && typeof window.rdslpNotifications.createNotification === 'function') {
+                    const snippet = (post.content || post.title || 'tu publicación').trim();
+                    const cleanSnippet = snippet.length > 50 ? snippet.substring(0, 50) + '...' : snippet;
+                    window.rdslpNotifications.createNotification({
+                        userId: String(post.authorId),
+                        senderId: String(currentUser.id),
+                        senderName: currentUser.name || 'Usuario',
+                        senderAvatar: '❤️',
+                        type: 'like',
+                        title: '❤️ Me Gusta en tu publicación',
+                        body: `@${currentUser.name || 'Usuario'} le dio Me Gusta a "${cleanSnippet}"`,
+                        link: `muro.html?postId=${post.id}#post-${post.id}`,
+                        metadata: {
+                            action: 'post',
+                            postId: post.id
+                        }
+                    }).catch(() => {});
+                }
             }
         }
     };
@@ -503,6 +593,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 if (window.rdslpSupabase.updateCloudPost) {
                     window.rdslpSupabase.updateCloudPost(targetId, post).catch(() => {});
+                }
+            }
+
+            // Notificación al autor de la publicación si otra persona comentó
+            if (post.authorId && String(post.authorId) !== String(currentUser.id)) {
+                if (window.rdslpNotifications && typeof window.rdslpNotifications.createNotification === 'function') {
+                    const commentSnippet = newComment.text.length > 50 ? newComment.text.substring(0, 50) + '...' : newComment.text;
+                    window.rdslpNotifications.createNotification({
+                        userId: String(post.authorId),
+                        senderId: String(currentUser.id),
+                        senderName: currentUser.name || 'Usuario',
+                        senderAvatar: '💬',
+                        type: 'comment',
+                        title: '💬 Comentario en tu publicación',
+                        body: `@${currentUser.name || 'Usuario'} comentó: "${commentSnippet}"`,
+                        link: `muro.html?postId=${post.id}&openComments=true#post-${post.id}`,
+                        metadata: {
+                            action: 'post',
+                            postId: post.id,
+                            openComments: true
+                        }
+                    }).catch(() => {});
                 }
             }
         }

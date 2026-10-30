@@ -162,12 +162,14 @@
     async function createNotification(notif) {
         const payload = {
             userId: notif.userId || 'all',
+            senderId: notif.senderId || null,
             senderName: notif.senderName || 'Sistema',
             senderAvatar: notif.senderAvatar || '🔔',
             type: notif.type || 'system',
             title: notif.title || 'Nueva Notificación',
             body: notif.body || '',
             link: notif.link || '',
+            metadata: notif.metadata || null,
             read: false,
             createdAt: new Date().toISOString()
         };
@@ -434,7 +436,12 @@
                 type: 'support',
                 title: '🚨 Solicitud de Ayuda Recibida',
                 body: `@${user.name} solicita soporte: "${problemDescription.substring(0, 90)}"`,
-                link: '../Static/dashboard.html#admin'
+                link: 'dashboard.html#support-tickets',
+                metadata: {
+                    action: 'support_admin',
+                    ticketId: String(ticketId),
+                    userName: user.name
+                }
             });
 
             // 2. Respuesta automática del Bot de Ayuda en el chat
@@ -480,7 +487,11 @@
                 type: 'support',
                 title: '💬 Respuesta del Administrador',
                 body: `El Administrador ha respondido a tu solicitud de soporte: "${cleanText.substring(0, 80)}"`,
-                link: '../Static/dashboard.html#ayuda'
+                link: 'comunidad.html?chat=ayuda#ayuda',
+                metadata: {
+                    action: 'support_user',
+                    chat: 'ayuda'
+                }
             });
         }
 
@@ -717,8 +728,11 @@
             else if (n.type === 'follow') icon = '👤';
             else if (n.type === 'broadcast') icon = '📢';
 
+            const metaStr = encodeURIComponent(JSON.stringify(n.metadata || {}));
+            const linkStr = encodeURIComponent(n.link || '');
+
             return `
-                <div class="notification-item ${isUnread ? 'unread' : ''}" ${bgClass} onclick="window.rdslpNotifications.handleNotificationClick('${n.id}', '${encodeURIComponent(n.link || '')}')" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;">
+                <div class="notification-item ${isUnread ? 'unread' : ''}" ${bgClass} onclick="window.rdslpNotifications.handleNotificationClick('${n.id}', '${linkStr}', '${metaStr}')" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s;">
                     <div style="font-size: 20px; line-height: 1; flex-shrink: 0; padding-top: 2px;">${icon}</div>
                     <div style="flex: 1; min-width: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
@@ -733,13 +747,172 @@
         }).join('');
     }
 
-    function handleNotificationClick(id, encodedLink) {
-        markAsRead(id);
-        if (encodedLink) {
-            const link = decodeURIComponent(encodedLink);
-            if (link) {
-                window.location.href = link;
+    // Resolución inteligente de rutas para navegación segura desde cualquier sección
+    function resolveAppPath(rawLink) {
+        if (!rawLink) return '';
+        if (rawLink.startsWith('http://') || rawLink.startsWith('https://') || rawLink.startsWith('//')) {
+            return rawLink;
+        }
+
+        let path = rawLink;
+        let queryAndHash = '';
+        const qIdx = path.indexOf('?');
+        const hIdx = path.indexOf('#');
+        let splitIdx = -1;
+        if (qIdx !== -1 && hIdx !== -1) splitIdx = Math.min(qIdx, hIdx);
+        else if (qIdx !== -1) splitIdx = qIdx;
+        else if (hIdx !== -1) splitIdx = hIdx;
+
+        if (splitIdx !== -1) {
+            queryAndHash = path.substring(splitIdx);
+            path = path.substring(0, splitIdx);
+        }
+
+        // Limpiar ../ o ./ o barras iniciales
+        let clean = path.replace(/^(\.\.\/)+/, '').replace(/^\.\//, '').replace(/^\//, '');
+        let targetFile = clean;
+        let isStaticFile = false;
+
+        if (clean.startsWith('Static/')) {
+            targetFile = clean.replace(/^Static\//, '');
+            isStaticFile = true;
+        } else if (['muro.html', 'dashboard.html', 'comunidad.html', 'login.html', 'registro.html', 'settings.html', 'certificados.html'].includes(clean)) {
+            isStaticFile = true;
+        }
+
+        const currentPath = (window.location.pathname || '').replace(/\\/g, '/');
+        const inStatic = currentPath.includes('/Static/') || currentPath.endsWith('/Static') || currentPath.endsWith('/Static/');
+        const inSubSection = currentPath.includes('Section/');
+
+        let finalPath = '';
+        if (isStaticFile) {
+            if (inStatic) {
+                finalPath = targetFile;
+            } else if (inSubSection) {
+                finalPath = '../Static/' + targetFile;
+            } else {
+                finalPath = 'Static/' + targetFile;
             }
+        } else {
+            if (inStatic || inSubSection) {
+                finalPath = '../' + clean;
+            } else {
+                finalPath = clean;
+            }
+        }
+
+        return finalPath + queryAndHash;
+    }
+
+    // Manejador centralizado de clics en notificaciones
+    function handleNotificationClick(id, encodedLink, encodedMeta) {
+        markAsRead(id);
+        const dropdown = document.getElementById('notificationsDropdown');
+        if (dropdown) dropdown.style.display = 'none';
+
+        let metadata = {};
+        try {
+            if (encodedMeta) metadata = JSON.parse(decodeURIComponent(encodedMeta));
+        } catch (e) {}
+
+        let link = encodedLink ? decodeURIComponent(encodedLink) : '';
+
+        // Extraer parámetros si vienen en el enlace
+        let linkParams = null;
+        let linkHash = '';
+        if (link) {
+            try {
+                const dummyUrl = new URL(link, 'http://localhost');
+                linkParams = dummyUrl.searchParams;
+                linkHash = dummyUrl.hash || '';
+            } catch (e) {}
+        }
+
+        const action = metadata.action || (linkParams ? (
+            linkParams.get('openProfile') ? 'profile' :
+            linkParams.get('openChat') ? 'chat' :
+            linkParams.get('postId') ? 'post' :
+            linkParams.get('chat') === 'ayuda' ? 'support_user' : null
+        ) : null);
+
+        const currentPath = (window.location.pathname || '').replace(/\\/g, '/');
+        const isMuro = currentPath.includes('muro.html');
+        const isComunidad = currentPath.includes('comunidad.html');
+        const isDashboard = currentPath.includes('dashboard.html');
+
+        // 1. Ir al Perfil del usuario que te siguió
+        if (action === 'profile' || (linkParams && linkParams.has('openProfile'))) {
+            const targetUserId = metadata.targetUserId || (linkParams ? linkParams.get('openProfile') : null);
+            const targetUserName = metadata.targetUserName || (linkParams ? linkParams.get('name') : 'Usuario');
+
+            if (isMuro && typeof window.openUserProfile === 'function') {
+                window.openUserProfile(targetUserId, targetUserName);
+                return;
+            }
+            const targetUrl = `muro.html?openProfile=${encodeURIComponent(targetUserId || '')}&name=${encodeURIComponent(targetUserName || 'Usuario')}`;
+            window.location.href = resolveAppPath(targetUrl);
+            return;
+        }
+
+        // 2. Ir al Chat del mensaje directo que te enviaron
+        if (action === 'chat' || (linkParams && linkParams.has('openChat'))) {
+            const targetUserId = metadata.targetUserId || (linkParams ? linkParams.get('openChat') : null);
+            const targetUserName = metadata.targetUserName || (linkParams ? (linkParams.get('chatName') || linkParams.get('name')) : 'Usuario');
+
+            if (isMuro && typeof window.openDirectChat === 'function') {
+                window.openDirectChat(targetUserId, targetUserName);
+                return;
+            }
+            const targetUrl = `muro.html?openChat=${encodeURIComponent(targetUserId || '')}&chatName=${encodeURIComponent(targetUserName || 'Usuario')}`;
+            window.location.href = resolveAppPath(targetUrl);
+            return;
+        }
+
+        // 3. Ir a Soporte / Ayuda (Admin o Usuario)
+        if (action === 'support_admin' || (link && link.includes('support-tickets'))) {
+            if (isDashboard) {
+                const btnSupport = document.querySelector('[data-admin-tab="support-tickets"]') || document.getElementById('adminTab_support-tickets');
+                if (btnSupport) {
+                    btnSupport.click();
+                    return;
+                }
+            }
+            window.location.href = resolveAppPath('dashboard.html#support-tickets');
+            return;
+        }
+
+        if (action === 'support_user' || (linkParams && (linkParams.get('chat') === 'ayuda' || linkParams.get('tab') === 'ayuda')) || (link && link.includes('#ayuda'))) {
+            if (isComunidad) {
+                const ayudaTab = document.querySelector('.chat-tab[data-chat="ayuda"]');
+                if (ayudaTab) {
+                    ayudaTab.click();
+                    const chatSection = document.getElementById('chatMessages') || document.querySelector('.community-chat');
+                    if (chatSection) chatSection.scrollIntoView({ behavior: 'smooth' });
+                    return;
+                }
+            }
+            window.location.href = resolveAppPath('comunidad.html?chat=ayuda#ayuda');
+            return;
+        }
+
+        // 4. Ir a lo que subió (Like o Comentario en post con animación de resplandor)
+        const targetPostId = metadata.postId || (linkParams ? linkParams.get('postId') : null) || (linkHash.startsWith('#post-') ? linkHash.replace('#post-', '') : null);
+        if (action === 'post' || targetPostId) {
+            if (isMuro && typeof window.highlightAndScrollToPost === 'function') {
+                window.highlightAndScrollToPost(targetPostId);
+                if (metadata.openComments && typeof window.toggleComments === 'function') {
+                    window.toggleComments(targetPostId);
+                }
+                return;
+            }
+            const targetUrl = `muro.html?postId=${encodeURIComponent(targetPostId || '')}${metadata.openComments ? '&openComments=true' : ''}#post-${targetPostId}`;
+            window.location.href = resolveAppPath(targetUrl);
+            return;
+        }
+
+        // Fallback genérico para otros enlaces
+        if (link) {
+            window.location.href = resolveAppPath(link);
         }
     }
 

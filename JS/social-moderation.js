@@ -58,12 +58,18 @@
                     if (window.rdslpNotifications && typeof window.rdslpNotifications.createNotification === 'function') {
                         window.rdslpNotifications.createNotification({
                             userId: String(targetUser.id),
+                            senderId: String(followerUser.id),
                             senderName: followerUser.name || 'Usuario',
                             senderAvatar: '👤',
                             type: 'follow',
                             title: '👤 Nuevo Seguidor',
-                            body: `@${followerUser.name || 'Un usuario'} ha comenzado a seguirte en la red social.`,
-                            link: '../Static/dashboard.html#perfil'
+                            body: `@${followerUser.name || 'Un usuario'} ha comenzado a seguirte. Toca para ver su perfil.`,
+                            link: `muro.html?openProfile=${followerUser.id}&name=${encodeURIComponent(followerUser.name || 'Usuario')}`,
+                            metadata: {
+                                action: 'profile',
+                                targetUserId: String(followerUser.id),
+                                targetUserName: followerUser.name || 'Usuario'
+                            }
                         }).catch(() => {});
                     }
                 } catch (e) {}
@@ -160,13 +166,19 @@
             if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
                 window.rdslpNotifications.createNotification({
                     userId: String(targetUserId),
+                    senderId: String(fromUser.id),
                     senderName: fromUser.name || 'Usuario',
                     senderAvatar: '💬',
                     type: 'message',
                     title: '💬 Nuevo Mensaje Directo',
                     body: `@${fromUser.name || 'Usuario'}: "${text.trim().substring(0, 60)}"`,
-                    link: '../Static/muro.html'
-                });
+                    link: `muro.html?openChat=${fromUser.id}&chatName=${encodeURIComponent(fromUser.name || 'Usuario')}`,
+                    metadata: {
+                        action: 'chat',
+                        targetUserId: String(fromUser.id),
+                        targetUserName: fromUser.name || 'Usuario'
+                    }
+                }).catch(() => {});
             }
 
             return { success: true, message: newMessage };

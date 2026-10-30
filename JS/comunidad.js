@@ -97,11 +97,18 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // Detectar si se navegó con hash #ayuda
+        // Detectar si se navegó con hash #ayuda o parámetro chat=ayuda (desde notificaciones)
         const checkAyudaHash = () => {
-            if (window.location.hash === '#ayuda' || window.location.hash === '#soporte') {
+            const params = new URLSearchParams(window.location.search);
+            if (window.location.hash === '#ayuda' || window.location.hash === '#soporte' || params.get('chat') === 'ayuda' || params.get('tab') === 'ayuda') {
                 const ayudaTab = document.querySelector('.chat-tab[data-chat="ayuda"]');
-                if (ayudaTab) ayudaTab.click();
+                if (ayudaTab) {
+                    ayudaTab.click();
+                    const chatSection = document.getElementById('chatMessages') || document.querySelector('.community-chat') || document.querySelector('.chat-container');
+                    if (chatSection) {
+                        setTimeout(() => chatSection.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+                    }
+                }
             }
         };
         checkAyudaHash();
