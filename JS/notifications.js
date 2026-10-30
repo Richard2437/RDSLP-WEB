@@ -593,7 +593,7 @@
                     <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">Cargando notificaciones...</div>
                 </div>
                 <div class="notifications-footer">
-                    <a href="../Static/dashboard.html#ayuda" id="linkToAyudaFooter" style="font-size: 12px; color: var(--accent-primary); text-decoration: none; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <a href="javascript:void(0)" id="linkToAyudaFooter" style="font-size: 12px; color: var(--accent-primary); text-decoration: none; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 4px 0;">
                         <span>💬 Centro de Ayuda y Soporte Oficial</span>
                     </a>
                 </div>
@@ -638,13 +638,21 @@
         const linkAyuda = wrapper.querySelector('#linkToAyudaFooter');
         if (linkAyuda) {
             linkAyuda.addEventListener('click', (e) => {
+                e.preventDefault();
                 dropdown.style.display = 'none';
+
+                const currentPath = (window.location.pathname || '').replace(/\\/g, '/');
+                const isComunidad = currentPath.includes('comunidad.html');
                 const ayudaTab = document.querySelector('.chat-tab[data-chat="ayuda"]');
-                if (ayudaTab) {
-                    e.preventDefault();
+
+                if (isComunidad && ayudaTab) {
                     ayudaTab.click();
-                    const chatSection = document.getElementById('chatMessages') || document.querySelector('.community-chat');
-                    if (chatSection) chatSection.scrollIntoView({ behavior: 'smooth' });
+                    const chatSection = document.getElementById('chatMessages') || document.querySelector('.community-chat') || document.querySelector('.chat-container');
+                    if (chatSection) {
+                        setTimeout(() => chatSection.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                    }
+                } else {
+                    window.location.href = resolveAppPath('comunidad.html?chat=ayuda#ayuda');
                 }
             });
         }

@@ -279,7 +279,11 @@
                     type: 'strike',
                     title: '⚠️ Aviso Oficial de la Comunidad (Strike)',
                     body: `Has recibido un strike por: ${reason || 'Infracción de normas'}. ${note ? 'Nota: ' + note : ''}`,
-                    link: '../Static/dashboard.html#ayuda'
+                    link: 'comunidad.html?chat=ayuda#ayuda',
+                    metadata: {
+                        action: 'support_user',
+                        chat: 'ayuda'
+                    }
                 });
             }
 
@@ -318,7 +322,11 @@
                     type: 'mute',
                     title: '🔇 Silenciado de Chat y Comentarios',
                     body: `Tu cuenta ha sido silenciada (${durationDays ? durationDays + ' días' : 'Permanente'}). Motivo: ${reason || 'Comportamiento inapropiado'}`,
-                    link: '../Static/dashboard.html#ayuda'
+                    link: 'comunidad.html?chat=ayuda#ayuda',
+                    metadata: {
+                        action: 'support_user',
+                        chat: 'ayuda'
+                    }
                 });
             }
 
@@ -357,7 +365,11 @@
                     type: 'system',
                     title: '⛔ Cuenta Suspendida / Baneada',
                     body: `Tu cuenta ha sido suspendida (${durationDays ? durationDays + ' días' : 'Permanente'}). Motivo: ${reason || 'Violación de normas'}`,
-                    link: '../Static/dashboard.html#ayuda'
+                    link: 'comunidad.html?chat=ayuda#ayuda',
+                    metadata: {
+                        action: 'support_user',
+                        chat: 'ayuda'
+                    }
                 });
             }
 
