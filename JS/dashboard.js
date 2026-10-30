@@ -10,6 +10,18 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    // Helper para escapar HTML seguro en todas las vistas y modales
+    function escapeHtml(str) {
+        if (!str && str !== 0) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    window.escapeHtml = escapeHtml;
+
     // Elementos del DOM
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebarToggle');
@@ -61,10 +73,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Revisar si la URL trae hash (ej: dashboard.html#admin)
         const checkHash = () => {
-            const h = window.location.hash.replace('#', '');
-            if (h) navigateTo(h);
+            const raw = (window.location.hash || '').replace('#', '').trim();
+            if (raw) {
+                navigateTo(raw);
+            }
         };
         checkHash();
+        setTimeout(checkHash, 50);
         window.addEventListener('hashchange', checkHash);
     }
 
@@ -241,6 +256,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Modals
         setupModalListeners();
+
+        // Pestañas del Panel de Administración (inicialización inmediata y permanente)
+        setupAdminTabsListeners();
     }
 
     // Navegar a sección
@@ -1149,30 +1167,35 @@ db.usuarios.<span class="function">updateOne</span>(
         document.getElementById('editBio').value = currentUser.bio || '';
     }
 
-    let adminTabsInitialized = false;
+    // Cache en memoria para el panel de administración (renderizado instantáneo sin pantallas en blanco)
+    let cachedAdminUsers = [];
+    let cachedAdminCommunities = [];
+    let adminCloudSyncInProgress = false;
+
+    // Configurar listeners de pestañas de administración (se ejecuta en setupEventListeners para respuesta inmediata)
+    function setupAdminTabsListeners() {
+        const tabs = document.querySelectorAll('.admin-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                tabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.color = 'var(--text-secondary)';
+                    t.style.borderBottom = '2px solid transparent';
+                    t.style.fontWeight = '500';
+                });
+                tab.classList.add('active');
+                tab.style.color = 'var(--text-primary)';
+                tab.style.borderBottom = '2px solid var(--accent-primary)';
+                tab.style.fontWeight = '600';
+                renderUserList(tab.dataset.tab);
+            });
+        });
+    }
 
     async function loadAdminPanel(targetTab) {
+        setupAdminTabsListeners();
         const tabs = document.querySelectorAll('.admin-tab');
-        if (!adminTabsInitialized) {
-            tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    tabs.forEach(t => {
-                        t.classList.remove('active');
-                        t.style.color = 'var(--text-secondary)';
-                        t.style.borderBottom = '2px solid transparent';
-                        t.style.fontWeight = '500';
-                    });
-                    tab.classList.add('active');
-                    tab.style.color = 'var(--text-primary)';
-                    tab.style.borderBottom = '2px solid var(--accent-primary)';
-                    tab.style.fontWeight = '600';
-                    renderUserList(tab.dataset.tab);
-                });
-            });
-            adminTabsInitialized = true;
-        }
-
         const tabToActivate = targetTab || document.querySelector('.admin-tab.active')?.dataset.tab || 'all-users';
         tabs.forEach(t => {
             const isActive = t.dataset.tab === tabToActivate;
@@ -1185,33 +1208,85 @@ db.usuarios.<span class="function">updateOne</span>(
         await renderUserList(tabToActivate);
     }
 
+    // Sincronización en segundo plano con Supabase (nunca congela la interfaz)
+    async function syncAdminCloudData(activeFilter) {
+        if (adminCloudSyncInProgress) return;
+        adminCloudSyncInProgress = true;
+
+        try {
+            let updated = false;
+
+            // 1. Usuarios en Supabase (con timeout seguro que resuelve en vez de rechazar)
+            if (window.rdslpSupabase && window.rdslpSupabase.getAllUsers) {
+                try {
+                    const timeoutUsers = new Promise(resolve => setTimeout(() => resolve(null), 2500));
+                    const remoteUsers = await Promise.race([window.rdslpSupabase.getAllUsers(), timeoutUsers]);
+                    if (remoteUsers && Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+                        cachedAdminUsers = remoteUsers.filter(u => u && typeof u === 'object');
+                        updated = true;
+                    }
+                } catch (e) {
+                    console.warn('[RDSLP] Sincronización remota de usuarios:', e.message);
+                }
+            }
+
+            // 2. Comunidades en Supabase
+            if (window.rdslpSupabase && window.rdslpSupabase.fetchCloudCommunities) {
+                try {
+                    const timeoutComms = new Promise(resolve => setTimeout(() => resolve(null), 2500));
+                    const remoteComms = await Promise.race([window.rdslpSupabase.fetchCloudCommunities(), timeoutComms]);
+                    if (remoteComms && Array.isArray(remoteComms)) {
+                        cachedAdminCommunities = remoteComms.filter(c => c && typeof c === 'object');
+                        updated = true;
+                    }
+                } catch (e) {
+                    console.warn('[RDSLP] Sincronización remota de comunidades:', e.message);
+                }
+            }
+
+            if (updated) {
+                // Actualizar contadores del resumen
+                const totalUsersEl = document.getElementById('totalUsers');
+                if (totalUsersEl) totalUsersEl.textContent = cachedAdminUsers.length;
+
+                const totalCommunitiesEl = document.getElementById('totalCommunities');
+                if (totalCommunitiesEl) totalCommunitiesEl.textContent = cachedAdminCommunities.length;
+
+                const bannedCount = cachedAdminUsers.filter(u => u.isBanned || u.role === 'banned').length;
+                const totalBannedEl = document.getElementById('totalBanned');
+                if (totalBannedEl) totalBannedEl.textContent = bannedCount;
+
+                // Re-renderizar contenido si el usuario sigue en pestañas de datos
+                const currentActiveTab = document.querySelector('.admin-tab.active')?.dataset.tab || activeFilter;
+                if (['all-users', 'active-users', 'banned-users', 'created-communities'].includes(currentActiveTab)) {
+                    renderAdminTabContent(currentActiveTab);
+                }
+            }
+        } finally {
+            adminCloudSyncInProgress = false;
+        }
+    }
+
     async function renderUserList(filter = 'all-users') {
         const usersList = document.getElementById('adminUsersList');
-        const listTitle = document.getElementById('adminListTitle');
-        const listCount = document.getElementById('adminListCount');
-
         if (!usersList) return;
 
-        usersList.innerHTML = '<div style="padding: 20px; color: var(--text-secondary); text-align: center;"><div class="loader-small" style="display: inline-block; margin-right: 8px;"></div> Cargando datos del sistema...</div>';
-
-        let allUsers = [];
-        try {
-            if (window.rdslpSupabase && window.rdslpSupabase.getAllUsers) {
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
-                allUsers = await Promise.race([window.rdslpSupabase.getAllUsers(), timeoutPromise]);
-            }
-        } catch (err) {
-            console.warn('[RDSLP] getAllUsers fallback local:', err.message);
-        }
-
-        if (!allUsers || allUsers.length === 0) {
+        // Cargar usuarios en caché de inmediato si aún está vacío (0ms de espera)
+        if (!cachedAdminUsers || cachedAdminUsers.length === 0) {
+            let initialUsers = [];
             if (auth && typeof auth.getAllUsers === 'function') {
-                allUsers = auth.getAllUsers() || [];
+                initialUsers = auth.getAllUsers() || [];
             }
-            if (allUsers.length === 0) {
-                const u = currentUser || JSON.parse(sessionStorage.getItem('rdslp_user') || localStorage.getItem('rdslp_user') || '{}');
+            if (initialUsers.length === 0) {
+                let u = currentUser;
+                if (!u) {
+                    try {
+                        const raw = sessionStorage.getItem('rdslp_user') || localStorage.getItem('rdslp_user');
+                        if (raw) u = JSON.parse(raw);
+                    } catch (e) {}
+                }
                 if (u && u.email) {
-                    allUsers = [{
+                    initialUsers = [{
                         id: u.id || 'usr_current',
                         email: u.email,
                         name: u.name || 'richard JG',
@@ -1221,51 +1296,55 @@ db.usuarios.<span class="function">updateOne</span>(
                     }];
                 }
             }
+            cachedAdminUsers = initialUsers.filter(u => u && typeof u === 'object');
         }
 
-        // Obtener comunidades creadas con timeout estricto de 1.5s para no congelar la UI
-        let allCommunities = [];
-        try {
-            if (filter === 'created-communities' || !document.getElementById('totalCommunities')?.textContent || document.getElementById('totalCommunities')?.textContent === '0') {
-                if (window.rdslpSupabase && window.rdslpSupabase.fetchCloudCommunities) {
-                    const timeoutComms = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 1500));
-                    allCommunities = await Promise.race([window.rdslpSupabase.fetchCloudCommunities(), timeoutComms]);
-                }
-            }
-        } catch (e) {
-            console.warn('[RDSLP] fetchCloudCommunities fallback local:', e.message);
-        }
-
-        if (!allCommunities || allCommunities.length === 0) {
+        // Cargar comunidades locales de inmediato si está vacío
+        if (!cachedAdminCommunities || cachedAdminCommunities.length === 0) {
+            let comms = [];
             if (typeof community !== 'undefined' && community.getEvents) {
-                allCommunities = community.getEvents() || [];
+                comms = community.getEvents() || [];
             } else {
                 try {
-                    allCommunities = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
+                    comms = JSON.parse(localStorage.getItem('rdslp_events') || '[]');
                 } catch (e) {
-                    allCommunities = [];
+                    comms = [];
                 }
             }
+            cachedAdminCommunities = comms.filter(c => c && typeof c === 'object');
         }
 
-        allUsers = (allUsers || []).filter(u => u && typeof u === 'object');
-        allCommunities = (allCommunities || []).filter(c => c && typeof c === 'object');
-
-        // Actualizar contadores del resumen
+        // Actualizar contadores del resumen inmediatamente
         const totalUsersEl = document.getElementById('totalUsers');
-        if (totalUsersEl) totalUsersEl.textContent = allUsers.length;
+        if (totalUsersEl) totalUsersEl.textContent = cachedAdminUsers.length;
 
         const totalCommunitiesEl = document.getElementById('totalCommunities');
-        if (totalCommunitiesEl) totalCommunitiesEl.textContent = allCommunities.length;
+        if (totalCommunitiesEl) totalCommunitiesEl.textContent = cachedAdminCommunities.length;
 
         const totalCommentsEl = document.getElementById('totalComments');
         if (totalCommentsEl && typeof content !== 'undefined') {
             totalCommentsEl.textContent = content.getComments ? content.getComments().length : 0;
         }
 
-        const bannedCount = allUsers.filter(u => u.isBanned || u.role === 'banned').length;
+        const bannedCount = cachedAdminUsers.filter(u => u.isBanned || u.role === 'banned').length;
         const totalBannedEl = document.getElementById('totalBanned');
         if (totalBannedEl) totalBannedEl.textContent = bannedCount;
+
+        // Renderizar pestaña solicitada de inmediato
+        await renderAdminTabContent(filter);
+
+        // Disparar sincronización con Supabase en segundo plano sin bloquear
+        syncAdminCloudData(filter);
+    }
+
+    async function renderAdminTabContent(filter) {
+        const usersList = document.getElementById('adminUsersList');
+        const listTitle = document.getElementById('adminListTitle');
+        const listCount = document.getElementById('adminListCount');
+        if (!usersList) return;
+
+        const allUsers = cachedAdminUsers || [];
+        const allCommunities = cachedAdminCommunities || [];
 
         // ── Pestaña: Solicitudes de Soporte (/ayuda) ──────────────────────
         if (filter === 'support-tickets') {
