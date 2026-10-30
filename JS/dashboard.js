@@ -1768,7 +1768,6 @@ db.usuarios.<span class="function">updateOne</span>(
         if (statFollowingEl) statFollowingEl.textContent = followingCount;
         if (statPostsEl) statPostsEl.textContent = userPosts.length;
 
-        const isSelf = currentUser && (String(currentUser.id) === targetUserId || currentUser.name === displayName);
         const isMutual = currentUser && mgr && !isSelf ? mgr.isMutual(currentUser.id, targetUserId) : false;
 
         if (statMutualWrap) {

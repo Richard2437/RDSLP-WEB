@@ -1310,7 +1310,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const adminTab = document.getElementById('modalAdminTab');
         const userRoleLower = String(currentUser?.role || '').toLowerCase();
         const isAdmin = userRoleLower === 'admin' || userRoleLower === 'administrador' || userRoleLower === 'moderator';
-        const isSelf = currentUser && (String(currentUser.id) === String(targetUserId) || currentUser.name === displayName);
 
         if (adminTab) {
             adminTab.style.display = (isAdmin && !isSelf) ? 'inline-flex' : 'none';
