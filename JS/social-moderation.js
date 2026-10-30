@@ -9,6 +9,9 @@
         // =====================================================
         // SEGUIDORES Y AMISTADES MUTUAS
         // =====================================================
+        // =====================================================
+        // SEGUIDORES Y AMISTADES MUTUAS (CON SINCRONIZACIÓN CLOUD)
+        // =====================================================
         getFollows: function () {
             try {
                 return JSON.parse(localStorage.getItem('rdslp_follows') || '[]');
@@ -22,53 +25,109 @@
             window.dispatchEvent(new CustomEvent('rdslp_follows_updated'));
         },
 
-        isFollowing: function (followerId, targetId) {
-            if (!followerId || !targetId) return false;
+        isFollowing: function (followerId, targetId, followerName, targetName) {
+            if (!followerId && !followerName) return false;
+            if (!targetId && !targetName) return false;
             const follows = this.getFollows();
-            return follows.some(f => String(f.followerId) === String(followerId) && String(f.targetId) === String(targetId));
+            const fId = followerId && followerId !== 'null' && followerId !== 'undefined' ? String(followerId) : '';
+            const tId = targetId && targetId !== 'null' && targetId !== 'undefined' ? String(targetId) : '';
+            const fName = followerName ? String(followerName).trim().toLowerCase() : '';
+            const tName = targetName ? String(targetName).trim().toLowerCase() : '';
+
+            return follows.some(f => {
+                const matchFollower = (fId && String(f.followerId) === fId) ||
+                                      (fName && f.followerName && String(f.followerName).trim().toLowerCase() === fName);
+                const matchTarget = (tId && String(f.targetId) === tId) ||
+                                    (tName && f.targetName && String(f.targetName).trim().toLowerCase() === tName);
+                return matchFollower && matchTarget;
+            });
         },
 
-        toggleFollow: function (followerUser, targetUser) {
+        // Dos personas son amigos mutuos SOLO si ambos se siguen mutuamente
+        isMutual: function (userAId, userBId, userAName, userBName) {
+            const aFollowsB = this.isFollowing(userAId, userBId, userAName, userBName);
+            const bFollowsA = this.isFollowing(userBId, userAId, userBName, userAName);
+            return aFollowsB && bFollowsA;
+        },
+
+        getFollowersCount: function (targetId, targetName) {
+            const follows = this.getFollows();
+            const tId = targetId && targetId !== 'null' && targetId !== 'undefined' ? String(targetId) : '';
+            const tName = targetName ? String(targetName).trim().toLowerCase() : '';
+
+            return follows.filter(f => {
+                return (tId && String(f.targetId) === tId) ||
+                       (tName && f.targetName && String(f.targetName).trim().toLowerCase() === tName);
+            }).length;
+        },
+
+        getFollowingCount: function (userId, userName) {
+            const follows = this.getFollows();
+            const uId = userId && userId !== 'null' && userId !== 'undefined' ? String(userId) : '';
+            const uName = userName ? String(userName).trim().toLowerCase() : '';
+
+            return follows.filter(f => {
+                return (uId && String(f.followerId) === uId) ||
+                       (uName && f.followerName && String(f.followerName).trim().toLowerCase() === uName);
+            }).length;
+        },
+
+        toggleFollow: async function (followerUser, targetUser) {
             if (!followerUser || !targetUser) return { success: false, message: 'Usuario inválido' };
-            if (String(followerUser.id) === String(targetUser.id)) {
+
+            const followerId = String(followerUser.id || followerUser.name);
+            const followerName = followerUser.name || 'Usuario';
+            const targetId = String(targetUser.id || targetUser.name);
+            const targetName = targetUser.name || 'Usuario';
+
+            if (followerId === targetId || followerName.toLowerCase() === targetName.toLowerCase()) {
                 return { success: false, message: 'No puedes seguirte a ti mismo' };
             }
 
             let follows = this.getFollows();
-            const index = follows.findIndex(f => String(f.followerId) === String(followerUser.id) && String(f.targetId) === String(targetUser.id));
+            const isCurrentlyFollowing = this.isFollowing(followerId, targetId, followerName, targetName);
             let isNowFollowing = false;
 
-            if (index >= 0) {
-                // Dejar de seguir
-                follows.splice(index, 1);
+            if (isCurrentlyFollowing) {
+                // Dejar de seguir: eliminar coincidencias
+                follows = follows.filter(f => {
+                    const matchF = (String(f.followerId) === followerId) || (f.followerName && f.followerName.toLowerCase() === followerName.toLowerCase());
+                    const matchT = (String(f.targetId) === targetId) || (f.targetName && f.targetName.toLowerCase() === targetName.toLowerCase());
+                    return !(matchF && matchT);
+                });
                 isNowFollowing = false;
+                this.syncCloudFollow({ followerId, followerName, targetId, targetName, action: 'unfollow' });
             } else {
                 // Comenzar a seguir
-                follows.push({
-                    followerId: String(followerUser.id),
-                    followerName: followerUser.name || 'Usuario',
-                    targetId: String(targetUser.id),
-                    targetName: targetUser.name || 'Usuario',
+                const newFollow = {
+                    followerId: followerId,
+                    followerName: followerName,
+                    targetId: targetId,
+                    targetName: targetName,
                     createdAt: new Date().toISOString()
-                });
+                };
+                follows.push(newFollow);
                 isNowFollowing = true;
+
+                // Sincronizar en la nube Supabase para soporte multi-dispositivo real
+                this.syncCloudFollow({ followerId, followerName, targetId, targetName, action: 'follow' });
 
                 // Enviar notificación al usuario seguido para que se marque en su campanita y alumbre
                 try {
                     if (window.rdslpNotifications && typeof window.rdslpNotifications.createNotification === 'function') {
                         window.rdslpNotifications.createNotification({
-                            userId: String(targetUser.id),
-                            senderId: String(followerUser.id),
-                            senderName: followerUser.name || 'Usuario',
+                            userId: String(targetId),
+                            senderId: String(followerId),
+                            senderName: followerName,
                             senderAvatar: '👤',
                             type: 'follow',
                             title: '👤 Nuevo Seguidor',
-                            body: `@${followerUser.name || 'Un usuario'} ha comenzado a seguirte. Toca para ver su perfil.`,
-                            link: `muro.html?openProfile=${followerUser.id}&name=${encodeURIComponent(followerUser.name || 'Usuario')}`,
+                            body: `@${followerName} ha comenzado a seguirte. Toca para ver su perfil.`,
+                            link: `muro.html?openProfile=${encodeURIComponent(followerId)}&name=${encodeURIComponent(followerName)}`,
                             metadata: {
                                 action: 'profile',
-                                targetUserId: String(followerUser.id),
-                                targetUserName: followerUser.name || 'Usuario'
+                                targetUserId: String(followerId),
+                                targetUserName: followerName
                             }
                         }).catch(() => {});
                     }
@@ -76,32 +135,101 @@
             }
 
             this.saveFollows(follows);
-            const isMutual = this.isMutual(followerUser.id, targetUser.id);
+            const isMutual = this.isMutual(followerId, targetId, followerName, targetName);
 
             return {
                 success: true,
                 isFollowing: isNowFollowing,
                 isMutual: isMutual,
-                followerCount: this.getFollowersCount(targetUser.id)
+                followerCount: this.getFollowersCount(targetId, targetName)
             };
         },
 
-        // Dos personas son amigos mutuos SOLO si ambos se siguen mutuamente
-        isMutual: function (userAId, userBId) {
-            if (!userAId || !userBId) return false;
-            const aFollowsB = this.isFollowing(userAId, userBId);
-            const bFollowsA = this.isFollowing(userBId, userAId);
-            return aFollowsB && bFollowsA;
+        // Sincronizar un follow/unfollow a Supabase (tabla mensajes con chat_id = '__FOLLOW__')
+        syncCloudFollow: async function (data) {
+            try {
+                if (!window.rdslpSupabase || typeof window.rdslpSupabase.getClient !== 'function') return;
+                const client = await window.rdslpSupabase.getClient();
+                if (!client) return;
+
+                if (data.action === 'unfollow') {
+                    await client
+                        .from('mensajes')
+                        .delete()
+                        .eq('chat_id', '__FOLLOW__')
+                        .eq('author_id', String(data.followerId));
+                } else {
+                    await client
+                        .from('mensajes')
+                        .insert([{
+                            chat_id: '__FOLLOW__',
+                            author_id: String(data.followerId),
+                            author_name: data.followerName,
+                            text: JSON.stringify({
+                                followerId: String(data.followerId),
+                                followerName: data.followerName,
+                                targetId: String(data.targetId),
+                                targetName: data.targetName,
+                                createdAt: new Date().toISOString()
+                            })
+                        }]);
+                }
+            } catch (e) {
+                console.warn('[RDSLP] Error sincronizando follow en Supabase:', e);
+            }
         },
 
-        getFollowersCount: function (targetId) {
-            const follows = this.getFollows();
-            return follows.filter(f => String(f.targetId) === String(targetId)).length;
-        },
+        // Cargar follows desde Supabase y sincronizar entre dispositivos
+        loadCloudFollows: async function () {
+            try {
+                if (!window.rdslpSupabase || typeof window.rdslpSupabase.getClient !== 'function') return;
+                const client = await window.rdslpSupabase.getClient();
+                if (!client) return;
 
-        getFollowingCount: function (userId) {
-            const follows = this.getFollows();
-            return follows.filter(f => String(f.followerId) === String(userId)).length;
+                const { data, error } = await client
+                    .from('mensajes')
+                    .select('*')
+                    .eq('chat_id', '__FOLLOW__')
+                    .order('created_at', { ascending: false });
+
+                if (!error && Array.isArray(data)) {
+                    const cloudFollows = [];
+                    data.forEach(item => {
+                        try {
+                            const parsed = JSON.parse(item.text);
+                            if (parsed && (parsed.followerId || parsed.followerName) && (parsed.targetId || parsed.targetName)) {
+                                cloudFollows.push(parsed);
+                            }
+                        } catch (e) {}
+                    });
+
+                    // Subir los locales existentes que no estén en la nube aún (migración inicial transparente)
+                    const localFollows = this.getFollows();
+                    for (const lf of localFollows) {
+                        const existsInCloud = cloudFollows.some(cf => 
+                            (cf.followerName?.toLowerCase() === lf.followerName?.toLowerCase() || String(cf.followerId) === String(lf.followerId)) &&
+                            (cf.targetName?.toLowerCase() === lf.targetName?.toLowerCase() || String(cf.targetId) === String(lf.targetId))
+                        );
+                        if (!existsInCloud && lf.followerId && lf.targetId) {
+                            this.syncCloudFollow({ ...lf, action: 'follow' });
+                            cloudFollows.push(lf);
+                        }
+                    }
+
+                    // Fusionar en un mapa único evitando duplicados
+                    const map = new Map();
+                    localFollows.concat(cloudFollows).forEach(f => {
+                        const key = `${(f.followerName || f.followerId || '').toLowerCase()}_${(f.targetName || f.targetId || '').toLowerCase()}`;
+                        if (key && key !== '_') map.set(key, f);
+                    });
+
+                    const merged = Array.from(map.values());
+                    localStorage.setItem('rdslp_follows', JSON.stringify(merged));
+                    window.dispatchEvent(new CustomEvent('rdslp_follows_updated'));
+                }
+            } catch (e) {
+                console.warn('[RDSLP] Error cargando follows desde Supabase:', e);
+            }
         },
 
         // =====================================================
@@ -115,18 +243,20 @@
             }
         },
 
-        getChatKey: function (userAId, userBId) {
-            const sorted = [String(userAId), String(userBId)].sort();
+        getChatKey: function (userAId, userBId, userAName, userBName) {
+            const nameA = String(userAName || userAId || 'userA').trim().toLowerCase();
+            const nameB = String(userBName || userBId || 'userB').trim().toLowerCase();
+            const sorted = [nameA, nameB].sort();
             return `chat_${sorted[0]}_${sorted[1]}`;
         },
 
-        getMessages: function (userAId, userBId) {
+        getMessages: function (userAId, userBId, userAName, userBName) {
             const chats = this.getChats();
-            const key = this.getChatKey(userAId, userBId);
+            const key = this.getChatKey(userAId, userBId, userAName, userBName);
             return chats[key] || [];
         },
 
-        sendDirectMessage: function (fromUser, targetUserId, text) {
+        sendDirectMessage: async function (fromUser, targetUserId, text, targetUserName) {
             if (!fromUser || !targetUserId || !text.trim()) {
                 return { success: false, message: 'Datos incompletos' };
             }
@@ -138,7 +268,7 @@
             }
 
             // REGLA CLAVE: Solo se permite chat si ambos se siguen mutuamente
-            if (!this.isMutual(fromUser.id, targetUserId)) {
+            if (!this.isMutual(fromUser.id, targetUserId, fromUser.name, targetUserName)) {
                 return {
                     success: false,
                     isBlocked: true,
@@ -147,7 +277,7 @@
             }
 
             const chats = this.getChats();
-            const key = this.getChatKey(fromUser.id, targetUserId);
+            const key = this.getChatKey(fromUser.id, targetUserId, fromUser.name, targetUserName);
             if (!chats[key]) chats[key] = [];
 
             const newMessage = {
@@ -162,6 +292,23 @@
             chats[key].push(newMessage);
             localStorage.setItem('rdslp_direct_chats', JSON.stringify(chats));
             window.dispatchEvent(new CustomEvent('rdslp_chat_message', { detail: { key, message: newMessage } }));
+
+            // Guardar en Supabase para sincronización multi-dispositivo en tiempo real
+            if (window.rdslpSupabase && typeof window.rdslpSupabase.getClient === 'function') {
+                try {
+                    const client = await window.rdslpSupabase.getClient();
+                    if (client) {
+                        await client.from('mensajes').insert([{
+                            chat_id: 'dm_' + key,
+                            author_id: String(fromUser.id),
+                            author_name: fromUser.name || 'Usuario',
+                            text: text.trim()
+                        }]);
+                    }
+                } catch (e) {
+                    console.warn('[RDSLP] Error guardando DM en Supabase:', e);
+                }
+            }
 
             if (window.rdslpNotifications && window.rdslpNotifications.createNotification) {
                 window.rdslpNotifications.createNotification({
@@ -182,6 +329,41 @@
             }
 
             return { success: true, message: newMessage };
+        },
+
+        // Sincronizar mensajes directos desde Supabase
+        syncCloudDirectMessages: async function (userAId, userBId, userAName, userBName) {
+            const key = this.getChatKey(userAId, userBId, userAName, userBName);
+            try {
+                if (!window.rdslpSupabase || typeof window.rdslpSupabase.getClient !== 'function') return;
+                const client = await window.rdslpSupabase.getClient();
+                if (!client) return;
+
+                const { data, error } = await client
+                    .from('mensajes')
+                    .select('*')
+                    .eq('chat_id', 'dm_' + key)
+                    .order('created_at', { ascending: true });
+
+                if (!error && Array.isArray(data)) {
+                    const chats = this.getChats();
+                    const cloudMsgs = data.map(d => ({
+                        id: d.id,
+                        senderId: String(d.author_id),
+                        senderName: d.author_name || 'Usuario',
+                        senderAvatar: (d.author_name ? d.author_name.charAt(0) : 'U').toUpperCase(),
+                        text: d.text,
+                        time: d.created_at
+                    }));
+                    if (cloudMsgs.length > 0) {
+                        chats[key] = cloudMsgs;
+                        localStorage.setItem('rdslp_direct_chats', JSON.stringify(chats));
+                        window.dispatchEvent(new CustomEvent('rdslp_chat_synced', { detail: { key } }));
+                    }
+                }
+            } catch (e) {
+                console.warn('[RDSLP] Error sincronizando DMs desde Supabase:', e);
+            }
         },
 
         // =====================================================

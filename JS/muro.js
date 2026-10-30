@@ -26,6 +26,20 @@ document.addEventListener('DOMContentLoaded', function () {
         syncCloudFeed();
         setInterval(syncCloudFeed, 4000);
 
+        // Cargar y sincronizar seguidores/amigos mutuos desde la nube Supabase
+        if (window.SocialModerationManager && typeof window.SocialModerationManager.loadCloudFollows === 'function') {
+            window.SocialModerationManager.loadCloudFollows();
+            setInterval(() => window.SocialModerationManager.loadCloudFollows(), 4000);
+        }
+
+        // Actualizar UI del perfil si hay cambios de seguidores en la nube
+        window.addEventListener('rdslp_follows_updated', () => {
+            const modal = document.getElementById('userProfileModal');
+            if (modal && modal.classList.contains('active') && currentProfileTarget) {
+                window.openUserProfile(currentProfileTarget.id, currentProfileTarget.name);
+            }
+        });
+
         // Escuchar sincronización con Supabase para actualizar rol y permisos en vivo (con detección de cambios para evitar parpadeo del feed)
         const handleUserUpdate = (e) => {
             const updated = e.detail || auth.getCurrentUser();
@@ -825,8 +839,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Abrir Perfil de Usuario
     window.openUserProfile = function (targetId, targetName) {
         if (!targetId && !targetName) return;
-        const targetUserId = String(targetId || targetName);
-        const displayName = targetName || 'Usuario';
+        const cleanTargetId = (targetId && targetId !== 'undefined' && targetId !== 'null') ? String(targetId) : '';
+        const displayName = (targetName && targetName !== 'undefined' && targetName !== 'null') ? targetName : 'Usuario';
+        const targetUserId = cleanTargetId || displayName;
 
         // Determinar rol
         let targetRole = 'usuario';
@@ -835,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const storedUsers = JSON.parse(localStorage.getItem('rdslp_users') || '[]');
-            const found = storedUsers.find(u => String(u.id) === targetUserId || u.name === displayName || u.email === targetUserId);
+            const found = storedUsers.find(u => (cleanTargetId && String(u.id) === cleanTargetId) || (u.name && u.name.toLowerCase() === displayName.toLowerCase()) || u.email === cleanTargetId);
             if (found && found.role) targetRole = found.role;
         } catch (e) {}
 
@@ -866,19 +881,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const mgr = window.SocialModerationManager;
-        const followersCount = mgr ? mgr.getFollowersCount(targetUserId) : 0;
-        const followingCount = mgr ? mgr.getFollowingCount(targetUserId) : 0;
+        const followersCount = mgr ? mgr.getFollowersCount(targetUserId, displayName) : 0;
+        const followingCount = mgr ? mgr.getFollowingCount(targetUserId, displayName) : 0;
 
         const posts = JSON.parse(localStorage.getItem('rdslp_posts') || '[]');
-        const userPosts = posts.filter(p => String(p.authorId) === targetUserId || p.authorName === displayName);
+        const userPosts = posts.filter(p => (cleanTargetId && String(p.authorId) === cleanTargetId) || (p.authorName && p.authorName.toLowerCase() === displayName.toLowerCase()));
 
         if (statFollowersEl) statFollowersEl.textContent = followersCount;
         if (statFollowingEl) statFollowingEl.textContent = followingCount;
         if (statPostsEl) statPostsEl.textContent = userPosts.length;
 
-        const isSelf = currentUser && (String(currentUser.id) === targetUserId || currentUser.name === displayName);
-        const isFollowing = currentUser && mgr && !isSelf ? mgr.isFollowing(currentUser.id, targetUserId) : false;
-        const isMutual = currentUser && mgr && !isSelf ? mgr.isMutual(currentUser.id, targetUserId) : false;
+        const isSelf = currentUser && (
+            (cleanTargetId && String(currentUser.id) === cleanTargetId) ||
+            (currentUser.name && displayName && currentUser.name.trim().toLowerCase() === displayName.trim().toLowerCase())
+        );
+        const isFollowing = currentUser && mgr && !isSelf ? mgr.isFollowing(currentUser.id, targetUserId, currentUser.name, displayName) : false;
+        const isMutual = currentUser && mgr && !isSelf ? mgr.isMutual(currentUser.id, targetUserId, currentUser.name, displayName) : false;
 
         if (statMutualWrap) {
             statMutualWrap.style.display = isMutual ? 'inline-flex' : 'none';
@@ -968,21 +986,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Toggle Seguir Usuario
-    window.toggleFollowUser = function (targetId, targetName) {
+    window.toggleFollowUser = async function (targetId, targetName) {
         if (!currentUser) {
             alert('Debes iniciar sesión para seguir usuarios.');
             return;
         }
         if (!window.SocialModerationManager) return;
 
-        const res = window.SocialModerationManager.toggleFollow(currentUser, { id: targetId, name: targetName });
+        const cleanTargetId = (targetId && targetId !== 'undefined' && targetId !== 'null') ? String(targetId) : '';
+        const displayName = (targetName && targetName !== 'undefined' && targetName !== 'null') ? targetName : 'Usuario';
+        const finalTargetId = cleanTargetId || displayName;
+
+        const res = await window.SocialModerationManager.toggleFollow(currentUser, { id: finalTargetId, name: displayName });
         if (!res.success) {
             alert(res.message);
             return;
         }
 
-        window.openUserProfile(targetId, targetName);
+        window.openUserProfile(finalTargetId, displayName);
     };
+
+    let directChatInterval = null;
 
     // Chat Privado (Solo Amigos Mutuos)
     window.openDirectChat = function (targetId, targetName) {
@@ -992,21 +1016,34 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (!window.SocialModerationManager) return;
 
-        if (!window.SocialModerationManager.isMutual(currentUser.id, targetId)) {
-            alert('🔒 Chat bloqueado: Para chatear en privado, ambos usuarios deben seguirse mutuamente.');
+        const cleanTargetId = (targetId && targetId !== 'undefined' && targetId !== 'null') ? String(targetId) : '';
+        const displayName = (targetName && targetName !== 'undefined' && targetName !== 'null') ? targetName : 'Usuario';
+        const finalTargetId = cleanTargetId || displayName;
+
+        if (!window.SocialModerationManager.isMutual(currentUser.id, finalTargetId, currentUser.name, displayName)) {
+            alert('🔒 Chat bloqueado: Para chatear en privado, ambos usuarios deben seguirse mutuamente (Amigos mutuos).');
             return;
         }
 
-        activeChatTarget = { id: targetId, name: targetName };
+        activeChatTarget = { id: finalTargetId, name: displayName };
         const chatModal = document.getElementById('directChatModal');
         const avatarEl = document.getElementById('chatTargetAvatar');
         const nameEl = document.getElementById('chatTargetName');
 
-        if (avatarEl) avatarEl.textContent = (targetName.charAt(0) || 'U').toUpperCase();
-        if (nameEl) nameEl.textContent = targetName;
+        if (avatarEl) avatarEl.textContent = (displayName.charAt(0) || 'U').toUpperCase();
+        if (nameEl) nameEl.textContent = displayName;
 
         renderDirectMessages();
         if (chatModal) chatModal.classList.add('active');
+
+        // Sincronizar mensajes en segundo plano desde Supabase para tiempo real entre dispositivos
+        window.SocialModerationManager.syncCloudDirectMessages(currentUser.id, finalTargetId, currentUser.name, displayName);
+        if (directChatInterval) clearInterval(directChatInterval);
+        directChatInterval = setInterval(() => {
+            if (activeChatTarget && window.SocialModerationManager && chatModal && chatModal.classList.contains('active')) {
+                window.SocialModerationManager.syncCloudDirectMessages(currentUser.id, activeChatTarget.id, currentUser.name, activeChatTarget.name);
+            }
+        }, 3000);
     };
 
     function renderDirectMessages() {
@@ -1014,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('directChatMessages');
         if (!container) return;
 
-        const messages = window.SocialModerationManager.getMessages(currentUser.id, activeChatTarget.id);
+        const messages = window.SocialModerationManager.getMessages(currentUser.id, activeChatTarget.id, currentUser.name, activeChatTarget.name);
         if (messages.length === 0) {
             container.innerHTML = `
                 <div class="chat-empty-state">
@@ -1027,8 +1064,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         container.innerHTML = messages.map(m => {
-            const isMine = String(m.senderId) === String(currentUser.id);
-            const timeStr = new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const isMine = String(m.senderId) === String(currentUser.id) || (m.senderName && m.senderName.toLowerCase() === currentUser.name?.toLowerCase());
+            const timeStr = m.time ? new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
             return `
                 <div class="direct-chat-row ${isMine ? 'mine' : 'theirs'}">
                     ${!isMine ? `<div class="chat-bubble-avatar">${m.senderAvatar || 'U'}</div>` : ''}
@@ -1046,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const closeChatBtn = document.getElementById('closeChatModal');
     if (closeChatBtn) {
         closeChatBtn.addEventListener('click', () => {
+            if (directChatInterval) clearInterval(directChatInterval);
             const m = document.getElementById('directChatModal');
             if (m) m.classList.remove('active');
         });
@@ -1053,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const chatForm = document.getElementById('directChatForm');
     if (chatForm) {
-        chatForm.addEventListener('submit', function (e) {
+        chatForm.addEventListener('submit', async function (e) {
             e.preventDefault();
             if (!activeChatTarget || !currentUser || !window.SocialModerationManager) return;
 
@@ -1061,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const text = input ? input.value.trim() : '';
             if (!text) return;
 
-            const res = window.SocialModerationManager.sendDirectMessage(currentUser, activeChatTarget.id, text);
+            const res = await window.SocialModerationManager.sendDirectMessage(currentUser, activeChatTarget.id, text, activeChatTarget.name);
             if (!res.success) {
                 alert(res.message);
                 return;
@@ -1071,6 +1109,20 @@ document.addEventListener('DOMContentLoaded', function () {
             renderDirectMessages();
         });
     }
+
+    // Escuchar mensajes entrantes en vivo para el chat
+    window.addEventListener('rdslp_chat_message', () => {
+        const chatModal = document.getElementById('directChatModal');
+        if (chatModal && chatModal.classList.contains('active')) {
+            renderDirectMessages();
+        }
+    });
+    window.addEventListener('rdslp_chat_synced', () => {
+        const chatModal = document.getElementById('directChatModal');
+        if (chatModal && chatModal.classList.contains('active')) {
+            renderDirectMessages();
+        }
+    });
 
     // Modal de Reportes de Publicación
     window.openReportModal = function (postId) {
