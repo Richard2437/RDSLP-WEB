@@ -14,8 +14,13 @@ CREATE TABLE IF NOT EXISTS public.perfiles (
     nombre TEXT NOT NULL DEFAULT 'Usuario',
     correo TEXT NOT NULL,
     rol TEXT NOT NULL DEFAULT 'user' CHECK (rol IN ('user', 'moderator', 'admin', 'banned')),
+    avatar TEXT,
+    cover TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS avatar TEXT;
+ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS cover TEXT;
 
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
 

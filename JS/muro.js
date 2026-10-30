@@ -57,6 +57,15 @@ document.addEventListener('DOMContentLoaded', function () {
         window.addEventListener('userSynced', handleUserUpdate);
         window.addEventListener('rdslp_user_updated', handleUserUpdate);
 
+        // Escuchar cambios de avatar y portada para refrescar feed y perfil inmediatamente
+        window.addEventListener('rdslp_customization_updated', () => {
+            loadUserData();
+            loadFeed();
+            if (currentProfileTarget && document.getElementById('userProfileModal')?.classList.contains('active')) {
+                window.openUserProfile(currentProfileTarget.id, currentProfileTarget.name);
+            }
+        });
+
         // Revisar parámetros de URL (para navegación directa desde notificaciones)
         checkUrlParams();
         window.addEventListener('hashchange', checkUrlParams);
@@ -136,9 +145,22 @@ document.addEventListener('DOMContentLoaded', function () {
     function loadUserData() {
         if (!currentUser) return;
         const initial = currentUser.name?.charAt(0).toUpperCase() || 'U';
-        document.getElementById('userAvatar').textContent = initial;
-        document.getElementById('userName').textContent = currentUser.name || 'Usuario';
-        document.getElementById('postAvatar').textContent = initial;
+        const userAvatarEl = document.getElementById('userAvatar');
+        const postAvatarEl = document.getElementById('postAvatar');
+        const userNameEl = document.getElementById('userName');
+        if (userNameEl) userNameEl.textContent = currentUser.name || 'Usuario';
+
+        const customs = window.rdslpCustomizer ? window.rdslpCustomizer.getUserCustomization(currentUser.id, currentUser.name) : null;
+        if (customs && customs.avatar) {
+            const avatarHtml = (customs.avatar.startsWith('data:image') || customs.avatar.startsWith('http'))
+                ? `<img src="${customs.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`
+                : `<span style="font-size: 20px; line-height: 1;">${customs.avatar}</span>`;
+            if (userAvatarEl) userAvatarEl.innerHTML = avatarHtml;
+            if (postAvatarEl) postAvatarEl.innerHTML = avatarHtml;
+        } else {
+            if (userAvatarEl) userAvatarEl.textContent = initial;
+            if (postAvatarEl) postAvatarEl.textContent = initial;
+        }
     }
 
     function setupEventListeners() {
@@ -369,6 +391,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function createPostHTML(post) {
         const initial = post.authorName?.charAt(0).toUpperCase() || '?';
+        const customAuthor = window.rdslpCustomizer ? window.rdslpCustomizer.getUserCustomization(post.authorId, post.authorName) : null;
+        let authorAvatarHTML = initial;
+        if (customAuthor && customAuthor.avatar) {
+            if (customAuthor.avatar.startsWith('data:image') || customAuthor.avatar.startsWith('http')) {
+                authorAvatarHTML = `<img src="${customAuthor.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+            } else {
+                authorAvatarHTML = `<span style="font-size: 20px; line-height: 1;">${customAuthor.avatar}</span>`;
+            }
+        }
+
         const timeAgo = getTimeAgo(post.createdAt);
         const isLiked = currentUser && post.likes?.includes(currentUser.id);
         const likesCount = post.likes?.length || 0;
@@ -414,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <div class="post-card" id="post-${post.id}" data-post-id="${post.id}">
                 <div class="post-header">
                     <div class="post-author" onclick="window.openUserProfile('${post.authorId}', '${escapeHtml(post.authorName)}')" style="cursor: pointer;" title="Ver perfil de ${escapeHtml(post.authorName)}">
-                        <div class="post-author-avatar">${initial}</div>
+                        <div class="post-author-avatar">${authorAvatarHTML}</div>
                         <div class="post-author-details">
                             <h4>${escapeHtml(post.authorName)}</h4>
                             <span>${timeAgo}</span>
@@ -477,9 +509,18 @@ document.addEventListener('DOMContentLoaded', function () {
             const canDeleteComment = isCommentAuthor || isAdmin || (currentUser && PERMISSIONS[currentUser.role]?.canDeleteOthersComments);
             const showDelete = canDeleteComment;
             const showEdit = isCommentAuthor;
+            const cCustom = window.rdslpCustomizer ? window.rdslpCustomizer.getUserCustomization(c.authorId, c.authorName) : null;
+            let cAvatarHTML = c.authorName?.charAt(0) || '?';
+            if (cCustom && cCustom.avatar) {
+                if (cCustom.avatar.startsWith('data:image') || cCustom.avatar.startsWith('http')) {
+                    cAvatarHTML = `<img src="${cCustom.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+                } else {
+                    cAvatarHTML = `<span style="font-size: 15px; line-height: 1;">${cCustom.avatar}</span>`;
+                }
+            }
             return `
                             <div class="comment-item" data-comment-id="${c.id}">
-                                <div class="comment-avatar">${c.authorName?.charAt(0) || '?'}</div>
+                                <div class="comment-avatar">${cAvatarHTML}</div>
                                 <div class="comment-content">
                                     <div class="comment-header-row">
                                         <span class="comment-author">${escapeHtml(c.authorName)}</span>
@@ -871,9 +912,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!modal) return;
 
         const initial = (displayName.charAt(0) || 'U').toUpperCase();
-        if (avatarEl) avatarEl.textContent = initial;
         if (nameEl) nameEl.textContent = displayName;
         if (handleEl) handleEl.textContent = `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
+
+        const modalProfileCover = document.getElementById('modalProfileCover') || modal.querySelector('.profile-modal-cover');
+        const btnChangeCover = document.getElementById('btnChangeCover');
+        const btnChangeAvatar = document.getElementById('btnChangeAvatar');
+
+        if (window.rdslpCustomizer) {
+            const customs = window.rdslpCustomizer.getUserCustomization(targetUserId, displayName);
+            window.rdslpCustomizer.applyCustomizationToElement(modalProfileCover, avatarEl, customs, initial);
+        } else {
+            if (avatarEl) avatarEl.textContent = initial;
+        }
 
         if (badgeEl) {
             badgeEl.textContent = targetRole === 'admin' ? 'ADMINISTRADOR' : (targetRole === 'moderator' ? 'MODERADOR' : 'USUARIO');
@@ -895,6 +946,10 @@ document.addEventListener('DOMContentLoaded', function () {
             (cleanTargetId && String(currentUser.id) === cleanTargetId) ||
             (currentUser.name && displayName && currentUser.name.trim().toLowerCase() === displayName.trim().toLowerCase())
         );
+
+        if (btnChangeCover) btnChangeCover.style.display = isSelf ? 'inline-flex' : 'none';
+        if (btnChangeAvatar) btnChangeAvatar.style.display = isSelf ? 'flex' : 'none';
+
         const isFollowing = currentUser && mgr && !isSelf ? mgr.isFollowing(currentUser.id, targetUserId, currentUser.name, displayName) : false;
         const isMutual = currentUser && mgr && !isSelf ? mgr.isMutual(currentUser.id, targetUserId, currentUser.name, displayName) : false;
 

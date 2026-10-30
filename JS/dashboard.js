@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         window.addEventListener('userSynced', handleUserUpdate);
         window.addEventListener('rdslp_user_updated', handleUserUpdate);
+        window.addEventListener('rdslp_customization_updated', () => loadUserData());
 
         // Revisar si la URL trae hash (ej: dashboard.html#admin)
         const checkHash = () => {
@@ -97,7 +98,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!currentUser) return;
 
         const initial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U';
-        if (userAvatar && userAvatar.textContent !== initial) userAvatar.textContent = initial;
+        const customs = window.rdslpCustomizer ? window.rdslpCustomizer.getUserCustomization(currentUser.id, currentUser.name) : null;
+        if (customs && customs.avatar) {
+            const avatarHtml = (customs.avatar.startsWith('data:image') || customs.avatar.startsWith('http'))
+                ? `<img src="${customs.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`
+                : `<span style="font-size: 20px; line-height: 1;">${customs.avatar}</span>`;
+            if (userAvatar) userAvatar.innerHTML = avatarHtml;
+        } else {
+            if (userAvatar && userAvatar.textContent !== initial) userAvatar.textContent = initial;
+        }
         if (userName && userName.textContent !== currentUser.name) userName.textContent = currentUser.name || 'Usuario';
 
         // Badge de rol coordinado en mayúsculas (idéntico a auth.js para cero saltos)
@@ -1725,9 +1734,23 @@ db.usuarios.<span class="function">updateOne</span>(
         if (!modal) return;
 
         const initial = (displayName.charAt(0) || 'U').toUpperCase();
-        if (avatarEl) avatarEl.textContent = initial;
         if (nameEl) nameEl.textContent = displayName;
         if (handleEl) handleEl.textContent = `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
+
+        const modalProfileCover = document.getElementById('modalProfileCover') || modal.querySelector('.profile-modal-cover');
+        const btnChangeCover = document.getElementById('btnChangeCover');
+        const btnChangeAvatar = document.getElementById('btnChangeAvatar');
+
+        if (window.rdslpCustomizer) {
+            const customs = window.rdslpCustomizer.getUserCustomization(targetUserId, displayName);
+            window.rdslpCustomizer.applyCustomizationToElement(modalProfileCover, avatarEl, customs, initial);
+        } else {
+            if (avatarEl) avatarEl.textContent = initial;
+        }
+
+        const isSelf = currentUser && (String(currentUser.id) === targetUserId || (currentUser.name && displayName && currentUser.name.trim().toLowerCase() === displayName.trim().toLowerCase()));
+        if (btnChangeCover) btnChangeCover.style.display = isSelf ? 'inline-flex' : 'none';
+        if (btnChangeAvatar) btnChangeAvatar.style.display = isSelf ? 'flex' : 'none';
 
         if (badgeEl) {
             badgeEl.textContent = targetRole === 'admin' ? 'ADMINISTRADOR' : (targetRole === 'moderator' ? 'MODERADOR' : 'USUARIO');

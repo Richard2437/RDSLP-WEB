@@ -47,9 +47,23 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!currentUser) return;
         const avatarEl = document.getElementById('userAvatar');
         const nameEl = document.getElementById('userName');
-        if (avatarEl) avatarEl.textContent = currentUser.name?.charAt(0).toUpperCase() || 'U';
+        const initial = currentUser.name?.charAt(0).toUpperCase() || 'U';
         if (nameEl) nameEl.textContent = currentUser.name || 'Usuario';
+
+        const customs = window.rdslpCustomizer ? window.rdslpCustomizer.getUserCustomization(currentUser.id, currentUser.name) : null;
+        if (customs && customs.avatar) {
+            const avatarHtml = (customs.avatar.startsWith('data:image') || customs.avatar.startsWith('http'))
+                ? `<img src="${customs.avatar}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`
+                : `<span style="font-size: 20px; line-height: 1;">${customs.avatar}</span>`;
+            if (avatarEl) avatarEl.innerHTML = avatarHtml;
+        } else {
+            if (avatarEl) avatarEl.textContent = initial;
+        }
     }
+
+    window.addEventListener('rdslp_customization_updated', () => {
+        loadUserData();
+    });
 
     // Verificar si se abrió la página mediante un Link de Invitación directo (?sala=RDSLP-XXXX)
     function checkInviteUrlParams() {
@@ -1217,9 +1231,23 @@ document.addEventListener('DOMContentLoaded', function () {
         const statPostsEl = document.getElementById('modalStatPosts');
 
         const initial = (displayName.charAt(0) || 'U').toUpperCase();
-        if (avatarEl) avatarEl.textContent = initial;
         if (nameEl) nameEl.textContent = displayName;
         if (handleEl) handleEl.textContent = `@${displayName.toLowerCase().replace(/\s+/g, '')}`;
+
+        const modalProfileCover = document.getElementById('modalProfileCover') || modal.querySelector('.profile-modal-cover');
+        const btnChangeCover = document.getElementById('btnChangeCover');
+        const btnChangeAvatar = document.getElementById('btnChangeAvatar');
+
+        if (window.rdslpCustomizer) {
+            const customs = window.rdslpCustomizer.getUserCustomization(targetUserId, displayName);
+            window.rdslpCustomizer.applyCustomizationToElement(modalProfileCover, avatarEl, customs, initial);
+        } else {
+            if (avatarEl) avatarEl.textContent = initial;
+        }
+
+        const isSelf = currentUser && (String(currentUser.id) === String(targetUserId) || (currentUser.name && displayName && currentUser.name.trim().toLowerCase() === displayName.trim().toLowerCase()));
+        if (btnChangeCover) btnChangeCover.style.display = isSelf ? 'inline-flex' : 'none';
+        if (btnChangeAvatar) btnChangeAvatar.style.display = isSelf ? 'flex' : 'none';
 
         // Obtener rol si está en los usuarios
         let targetRole = 'user';

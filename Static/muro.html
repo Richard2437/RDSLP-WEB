@@ -206,8 +206,15 @@
     <div class="modal" id="userProfileModal">
         <div class="modal-content modal-large profile-modal-content">
             <div class="modal-header profile-modal-header">
-                <div class="profile-modal-cover">
+                <div class="profile-modal-cover" id="modalProfileCover">
+                    <button type="button" class="btn-change-cover" id="btnChangeCover" style="display: none;" title="Cambiar portada" onclick="window.rdslpCustomizer && window.rdslpCustomizer.openCustomizerModal('cover')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        <span>Editar Portada</span>
+                    </button>
                     <div class="profile-modal-avatar" id="modalUserAvatar">U</div>
+                    <button type="button" class="btn-change-avatar" id="btnChangeAvatar" style="display: none;" title="Cambiar foto de perfil" onclick="window.rdslpCustomizer && window.rdslpCustomizer.openCustomizerModal('avatar')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                    </button>
                 </div>
                 <button class="modal-close" id="closeProfileModal">&times;</button>
             </div>
@@ -379,6 +386,7 @@
     <script src="../JS/auth.js"></script>
     <script src="../JS/notifications.js"></script>
     <script src="../JS/social-moderation.js"></script>
+    <script src="../JS/profile-customizer.js"></script>
     <script src="../JS/muro.js"></script>
 </body>
 </html>
