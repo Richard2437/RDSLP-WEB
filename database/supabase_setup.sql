@@ -1,12 +1,4 @@
 -- =====================================================
--- RDSLP - Script SQL Completo para Supabase (Producción)
--- Ejecuta este script en el SQL Editor de tu Dashboard de Supabase
--- https://supabase.com/dashboard/project/TU_PROJECT_ID/sql
--- =====================================================
--- Este script es IDEMPOTENTE: se puede ejecutar varias veces sin error.
--- =====================================================
-
--- =====================================================
 -- 1. TABLA: perfiles (sincronizada con auth.users)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.perfiles (
@@ -14,13 +6,8 @@ CREATE TABLE IF NOT EXISTS public.perfiles (
     nombre TEXT NOT NULL DEFAULT 'Usuario',
     correo TEXT NOT NULL,
     rol TEXT NOT NULL DEFAULT 'user' CHECK (rol IN ('user', 'moderator', 'admin', 'banned')),
-    avatar TEXT,
-    cover TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS avatar TEXT;
-ALTER TABLE public.perfiles ADD COLUMN IF NOT EXISTS cover TEXT;
 
 ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
 

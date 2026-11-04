@@ -1,247 +1,138 @@
-<p align="center">
-  <strong>🌐 RDSLP</strong><br>
-  <em>Red Social de Lenguajes de Programación</em>
-</p>
+# RDSLP-WEB
 
-<p align="center">
-  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
-  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3">
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
-  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase">
-  <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel">
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License">
-</p>
+Bienvenido a la plataforma de Redes de Soporte de Lenguaje de Programación (RDSLP).
 
----
+##  Características Principales
 
-## 📋 Descripción
+-  **Autenticación Segura**: Inicio de sesión y registro verificados por Supabase Auth.
+-  **Comunidad Dinámica**:
+  -  Grupos de interés organizados por tecnologías.
+  -  Eventos con sistema de registro público/privado.
+  -  Sistema de invitaciones con códigos QR.
+-  **Recursos de Aprendizaje**:
+  -  Editor colaborativo en tiempo real para crear y compartir archivos.
+  -  Organización jerárquica de archivos por lenguaje.
+  -  Control de versiones y diff viewer.
+-  **Herramientas de Productividad**:
+  -  Chat en tiempo real con moderación inteligente.
+  -  Desafíos de código integrados.
+  -  Sistema de gestión de tareas.
 
-**RDSLP** es una plataforma web educativa tipo red social enfocada en lenguajes de programación. Permite a los usuarios registrarse, iniciar sesión, explorar contenido educativo de lógica, lenguajes, bases de datos y libros, además de interactuar en un muro comunitario y participar en eventos.
+##  Instalación y Configuración
 
-### Características principales
+### Requisitos Previos
 
-- 🔐 **Autenticación segura** con Supabase (email/contraseña + Google OAuth)
-- 👥 **Sistema de roles**: `user`, `moderator`, `admin`, `banned`
-- 📝 **Muro social** con publicaciones, likes y comentarios
-- 💻 **Editor de ejercicios** con ejecución de código en vivo
-- 📚 **Biblioteca de libros** recomendados de programación
-- 🧠 **Sección de lógica** de programación
-- 🗄️ **Sección de bases de datos** con contenido educativo
-- 🏘️ **Comunidades** públicas y privadas con código de invitación
-- ⚖️ **Cumplimiento legal** Habeas Data (Ley 1581 de 2012) y Términos de Servicio
-- 🛡️ **Panel de Administración** con gestión de usuarios, roles y baneos
+- Node.js (v16 o superior recomendado)
+- MySQL 8.0+ o MariaDB
 
----
+### Configuración del Entorno
 
-## 🏗️ Arquitectura del Proyecto
+1. Copia el archivo `.env.example` a `.env`:
+   ```bash
+   cp .env.example .env
+   ```
 
-```
-RDSLP-WEB/
-├── Static/                    # Páginas HTML del sitio
-│   ├── login.html             # Inicio de sesión
-│   ├── sesion.html            # Registro de nuevos usuarios
-│   ├── dashboard.html         # Panel principal
-│   ├── muro.html              # Muro de publicaciones
-│   ├── ejercicios.html        # Editor de ejercicios
-│   ├── logica.html            # Contenido de lógica
-│   ├── libros.html            # Biblioteca de libros
-│   ├── comunidad.html         # Salas y comunidades
-│   ├── perfil.html            # Perfil del usuario
-│   └── databases.html         # Sección de bases de datos
-├── JS/                        # Lógica JavaScript del frontend
-│   ├── supabase-client.js     # Cliente oficial de Supabase (Auth, DB, OAuth)
-│   ├── auth.js                # Autenticación, roles, ban/unban
-│   ├── login.js               # Lógica del formulario de login
-│   ├── sesion.js              # Registro y validación legal
-│   ├── dashboard.js           # Panel principal y administración
-│   ├── muro.js                # Publicaciones y comentarios
-│   ├── ejercicios.js          # Editor de código y ejecución
-│   ├── comunidad.js           # Salas públicas/privadas
-│   ├── perfil.js              # Perfil del usuario
-│   ├── logica.js              # Contenido de lógica
-│   ├── libros.js              # Biblioteca
-│   ├── databases.js           # Bases de datos
-│   ├── legal.js               # Módulo legal (Habeas Data / TOS)
-│   └── api-client.js          # Cliente API para backend serverless
-├── Styles/                    # Hojas de estilo CSS
-├── api/                       # Funciones serverless (Vercel)
-│   ├── config.js              # Expone variables de entorno públicas
-│   ├── auth.js                # Autenticación backend con JWT
-│   ├── posts.js               # CRUD de publicaciones
-│   ├── comments.js            # CRUD de comentarios
-│   └── likes.js               # Sistema de likes
-├── database/                  # Scripts SQL
-│   └── supabase_setup.sql     # Schema de Supabase (tablas, RLS, triggers)
-├── .env.example               # Plantilla de variables de entorno
-├── .gitignore                 # Reglas de exclusión DevSecOps
-├── vercel.json                # Configuración de despliegue en Vercel
-├── package.json               # Metadata del proyecto
-└── LICENSE                    # Licencia MIT
-```
+2. Configura las variables de entorno:
+   ```bash
+   # Base de datos MySQL
+   DB_HOST=localhost
+   DB_USER=tu_usuario
+   DB_PASSWORD=tu_contraseña
+   DB_NAME=rdslp_db
+   DB_PORT=3306
+   
+   # Supabase (opcional, para autenticación)
+   SUPABASE_URL=tu_supabase_url
+   SUPABASE_ANON_KEY=tu_supabase_anon_key
+   ```
 
----
+### Configuración de la Base de Datos
 
-## 🚀 Instalación y Despliegue
+1. Ejecuta las migraciones para crear las tablas:
+   ```bash
+   node setup_database.js
+   ```
 
-### Requisitos previos
+##  Desarrollo
 
-- Cuenta en [Supabase](https://supabase.com) (proyecto creado)
-- Cuenta en [Vercel](https://vercel.com) (para despliegue)
-- [Node.js](https://nodejs.org) ≥ 18 (para desarrollo local opcional)
+### Estructura del Proyecto
 
-### 1. Clonar el repositorio
+- `api/`: Lógica del backend y rutas API
+- `routes/`: Definiciones de rutas
+- `public/`: Archivos estáticos (HTML, CSS, JS)
+- `Static/`: Activos estáticos y plantillas HTML
+- `setup_database.js`: Script de inicialización de base de datos
 
-```bash
-git clone https://github.com/Richard2437/RDSLP-WEB.git
-cd RDSLP-WEB
-```
+### Ejecución del Servidor
 
-### 2. Configurar variables de entorno
+1. Instala las dependencias:
+   ```bash
+   npm install
+   ```
 
-Copia el archivo de ejemplo y completa con tus credenciales:
+2. Inicia el servidor:
+   ```bash
+   node server.js
+   ```
 
-```bash
-cp .env.example .env
-```
+El servidor se iniciará en `http://localhost:3000`.
 
-Edita `.env` con tus valores:
+##  Seguridad
 
-```env
-# Puerto del servidor (solo desarrollo local)
-PORT=3000
+### Integración con Supabase Auth
 
-# Supabase - Configuración pública
-SUPABASE_URL=https://TU_PROJECT_ID.supabase.co
-SUPABASE_ANON_KEY=tu_anon_key_publica
+La plataforma utiliza Supabase Auth para:
+- Registro y login de usuarios
+- Verificación de correo electrónico
+- Recuperación de contraseña
+- Gestión de sesiones seguras
 
-# JWT Secret para el backend serverless
-JWT_SECRET=tu_secreto_jwt_seguro
-```
+### Configuración de Seguridad
 
-> ⚠️ **IMPORTANTE**: Nunca subas el archivo `.env` al repositorio. Está incluido en `.gitignore`.
+- Asegúrate de configurar `SESSION_SECRET` en el archivo `.env`
+- Utiliza HTTPS en producción
+- Implementa rate limiting para prevenir abusos
+- Configura políticas de seguridad de CSP (Content Security Policy)
 
-### 3. Configurar Supabase
+##  Colaboración
 
-1. Ve a tu [Dashboard de Supabase](https://supabase.com/dashboard)
-2. Abre el **SQL Editor** de tu proyecto
-3. Ejecuta el script [`database/supabase_setup.sql`](database/supabase_setup.sql) para crear las tablas, políticas RLS y triggers
+### Contribuyendo al Proyecto
 
-### 4. Configurar Google OAuth (opcional)
+1. Crea una rama para tu feature:
+   ```bash
+   git checkout -b feature/nombre-de-la-feature
+   ```
 
-Para habilitar el login con Google:
+2. Desarrolla tu feature y haz commits descriptivos:
+   ```bash
+   git add .
+   git commit -m "feat: descripción de la feature"
+   ```
 
-1. **En Google Cloud Console:**
-   - Crea un proyecto en [Google Cloud Console](https://console.cloud.google.com)
-   - Ve a **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
-   - Tipo de aplicación: **Web Application**
-   - Agrega como **Authorized redirect URIs**: `https://TU_PROJECT_ID.supabase.co/auth/v1/callback`
-   - Copia el **Client ID** y **Client Secret**
+3. Crea un Pull Request para revisión
 
-2. **En el Dashboard de Supabase:**
-   - Ve a **Authentication → Providers → Google**
-   - Habilita el toggle de **Google**
-   - Pega el **Client ID** y **Client Secret** de Google Cloud
-   - Guarda la configuración
+### Convenciones de Código
 
-> 📌 Sin esta configuración, el botón "Continuar con Google" mostrará el error:  
-> `{"code":400,"error_code":"validation_failed","msg":"Unsupported provider: provider is not enabled"}`
+- Sigue las guías de estilo de Airbnb
+- Utiliza comentarios descriptivos
+- Nombra variables de forma clara y concisa
+- Sigue el patrón de diseño MVC (Model-View-Controller)
 
-### 5. Desplegar en Vercel
+##  Licencia
 
-1. Conecta tu repositorio en [Vercel](https://vercel.com/new)
-2. Configura las **Environment Variables** en Vercel:
+Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
-   | Variable | Valor |
-   |---|---|
-   | `SUPABASE_URL` | `https://TU_PROJECT_ID.supabase.co` |
-   | `SUPABASE_ANON_KEY` | Tu clave pública (anon key) |
-   | `JWT_SECRET` | Un secreto fuerte para firmar JWT |
+##  Soporte
 
-3. Despliega el proyecto
-
-### 6. Asignar roles
-
-Desde el SQL Editor de Supabase, puedes asignar roles a cualquier usuario:
-
-```sql
-SELECT public.asignar_rol('correo@ejemplo.com', 'admin');
--- Roles disponibles: 'user', 'moderator', 'admin', 'banned'
-```
+Si tienes problemas o preguntas:
+- Revisa la documentación del proyecto
+- Consulta los logs del servidor (`logs/server.log`)
+- Si eres administrador, revisa `server.js` para opciones de depuración
 
 ---
 
-## 🛡️ Seguridad (DevSecOps)
+**RDSLP - Redes de Soporte de Lenguaje de Programación**
 
-### Gestión de secretos
+*Construyendo comunidades de aprendizaje en tecnología*
 
-| Práctica | Implementación |
-|---|---|
-| **No hardcodear credenciales** | Las claves de Supabase se inyectan desde variables de entorno via `/api/config` |
-| **`.env` en `.gitignore`** | El archivo `.env` nunca se sube al repositorio |
-| **Variables de entorno en Vercel** | Las credenciales se configuran en el panel de Vercel, no en el código |
-| **Separación cliente/servidor** | Los secretos (`JWT_SECRET`) solo se usan en funciones serverless (`/api/*`) |
-
-### Row Level Security (RLS)
-
-La base de datos en Supabase usa **Row Level Security** para proteger los datos:
-
-- **Perfiles**: Lectura pública, escritura autenticada
-- **Roles**: Solo modificables desde funciones SQL con `SECURITY DEFINER`
-- **Trigger automático**: Los perfiles se sincronizan automáticamente al registrar un usuario
-
-### Buenas prácticas implementadas
-
-- ✅ Credenciales servidas desde endpoint serverless (`/api/config`)
-- ✅ `.gitignore` con reglas DevSecOps (archivos `.env`, certificados, IDE, etc.)
-- ✅ Validación de inputs en cliente y servidor
-- ✅ CORS configurado en funciones serverless
-- ✅ JWT firmado con secreto del lado del servidor
-- ✅ Políticas RLS en Supabase para control de acceso a nivel de fila
-- ✅ Sesión gestionada por Supabase Auth (tokens seguros)
-- ✅ Headers de seguridad configurados en Vercel
-
----
-
-## 🔑 Roles de Usuario
-
-| Rol | Permisos |
-|---|---|
-| `user` | Acceso básico: publicar, comentar, explorar contenido |
-| `moderator` | Permisos intermedios de moderación |
-| `admin` | Acceso total: gestionar usuarios, banear, cambiar roles |
-| `banned` | Cuenta suspendida: sin acceso a la plataforma |
-
----
-
-## ⚖️ Cumplimiento Legal
-
-- **Habeas Data (Ley 1581 de 2012)**: Política de tratamiento de datos personales con derechos ARCO
-- **Términos de Servicio**: Reglas de convivencia, prohibición de código malicioso
-- **Consentimiento informado**: Checkbox obligatorio en el registro con fecha ISO de aceptación
-- **No venta de datos**: RDSLP no cede datos a terceros con fines comerciales
-
----
-
-## 🛠️ Tecnologías
-
-| Categoría | Tecnología |
-|---|---|
-| Frontend | HTML5, CSS3, JavaScript (Vanilla) |
-| Tipografía | Google Fonts (Inter) |
-| UI Framework | Bootstrap 5.3 (CDN) |
-| Backend (BaaS) | Supabase (Auth, Database, RLS) |
-| Serverless | Vercel Functions (Node.js) |
-| Hosting | Vercel |
-| Base de datos | PostgreSQL (Supabase) |
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la [Licencia MIT](LICENSE).
-
----
-
-<p align="center">
-  <sub>Desarrollado como proyecto ABP Final · 2026</sub>
-</p>
+Creado por: Ricardo Jaraba Gallego
