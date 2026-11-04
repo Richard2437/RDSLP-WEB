@@ -1064,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let directChatInterval = null;
 
     // Chat Privado (Solo Amigos Mutuos)
-    window.openDirectChat = function (targetId, targetName) {
+    window.openDirectChat = async function (targetId, targetName) {
         if (!currentUser) {
             alert('Debes iniciar sesiÃ³n para usar el chat.');
             return;
@@ -1074,6 +1074,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const cleanTargetId = (targetId && targetId !== 'undefined' && targetId !== 'null') ? String(targetId) : '';
         const displayName = (targetName && targetName !== 'undefined' && targetName !== 'null') ? targetName : 'Usuario';
         const finalTargetId = cleanTargetId || displayName;
+
+        // Forzar sincronización de follows desde la nube antes de verificar mutualismo
+        // para asegurar que tenemos los datos más recientes del otro usuario
+        if (typeof window.SocialModerationManager.loadCloudFollows === 'function') {
+            try { await window.SocialModerationManager.loadCloudFollows(); } catch (e) {}
+        }
 
         if (!window.SocialModerationManager.isMutual(currentUser.id, finalTargetId, currentUser.name, displayName)) {
             alert('ðŸ”’ Chat bloqueado: Para chatear en privado, ambos usuarios deben seguirse mutuamente (Amigos mutuos).');

@@ -2,7 +2,6 @@
 // RDSLP - API Serverless: Configuración Pública
 // Expone SOLO las variables de entorno públicas (Supabase URL y Anon Key)
 // para que el frontend las consuma de forma segura sin hardcodearlas.
-// NUNCA expone secretos como JWT_SECRET, SERVICE_ROLE_KEY, etc.
 // =====================================================
 
 module.exports = (req, res) => {

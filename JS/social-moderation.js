@@ -146,33 +146,53 @@
         },
 
         // Sincronizar un follow/unfollow a Supabase (tabla mensajes con chat_id = '__FOLLOW__')
+        // Se guardan DOS registros por follow: uno con author_id=follower y otro con author_id=target,
+        // para que ambos usuarios puedan leer el follow aunque RLS filtre por author_id = auth.uid().
         syncCloudFollow: async function (data) {
             try {
                 if (!window.rdslpSupabase || typeof window.rdslpSupabase.getClient !== 'function') return;
                 const client = await window.rdslpSupabase.getClient();
                 if (!client) return;
 
+                const followPayload = JSON.stringify({
+                    followerId: String(data.followerId),
+                    followerName: data.followerName,
+                    targetId: String(data.targetId),
+                    targetName: data.targetName,
+                    createdAt: new Date().toISOString()
+                });
+
                 if (data.action === 'unfollow') {
+                    // Borrar ambos registros (el del follower y el espejo del target)
+                    // Usamos .like en text para filtrar por el follow específico en vez de borrar todos
+                    const filterFollowerId = `%"followerId":"${String(data.followerId)}"%`;
+                    const filterTargetId = `%"targetId":"${String(data.targetId)}"%`;
+
                     await client
                         .from('mensajes')
                         .delete()
                         .eq('chat_id', '__FOLLOW__')
-                        .eq('author_id', String(data.followerId));
+                        .like('text', filterFollowerId)
+                        .like('text', filterTargetId);
                 } else {
+                    // Registro principal (author_id = follower) para que el follower lo vea
+                    // Registro espejo (author_id = target) para que el target también lo vea
                     await client
                         .from('mensajes')
-                        .insert([{
-                            chat_id: '__FOLLOW__',
-                            author_id: String(data.followerId),
-                            author_name: data.followerName,
-                            text: JSON.stringify({
-                                followerId: String(data.followerId),
-                                followerName: data.followerName,
-                                targetId: String(data.targetId),
-                                targetName: data.targetName,
-                                createdAt: new Date().toISOString()
-                            })
-                        }]);
+                        .insert([
+                            {
+                                chat_id: '__FOLLOW__',
+                                author_id: String(data.followerId),
+                                author_name: data.followerName,
+                                text: followPayload
+                            },
+                            {
+                                chat_id: '__FOLLOW__',
+                                author_id: String(data.targetId),
+                                author_name: data.targetName || 'Usuario',
+                                text: followPayload
+                            }
+                        ]);
                 }
             } catch (e) {
                 console.warn('[RDSLP] Error sincronizando follow en Supabase:', e);
@@ -217,9 +237,15 @@
                     }
 
                     // Fusionar en un mapa único evitando duplicados
+                    // Clave única: combinación de followerId+targetId Y followerName+targetName
                     const map = new Map();
                     localFollows.concat(cloudFollows).forEach(f => {
-                        const key = `${(f.followerName || f.followerId || '').toLowerCase()}_${(f.targetName || f.targetId || '').toLowerCase()}`;
+                        const fId = String(f.followerId || '').toLowerCase();
+                        const tId = String(f.targetId || '').toLowerCase();
+                        const fName = (f.followerName || '').toLowerCase();
+                        const tName = (f.targetName || '').toLowerCase();
+                        // Usar IDs como clave principal si existen, nombres como respaldo
+                        const key = (fId && tId) ? `${fId}_${tId}` : `${fName}_${tName}`;
                         if (key && key !== '_') map.set(key, f);
                     });
 

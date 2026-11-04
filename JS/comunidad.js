@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (s.warnings && s.warnings.length > 0) {
                     statusBadge = `<span style="color: #f59e0b; font-weight: 600;">⚠️ ${s.warnings.length} Strikes</span>`;
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
 
         const bannerHTML = `
@@ -605,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (localComms.length > 0) {
                     // Migración inicial: subir comunidades locales existentes a Supabase
                     for (const lc of localComms) {
-                        await window.rdslpSupabase.createCloudCommunity(lc).catch(() => {});
+                        await window.rdslpSupabase.createCloudCommunity(lc).catch(() => { });
                     }
                 }
             }
@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const date = new Date(event.date);
             const dateStr = date.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
             const timeStr = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-            
+
             const isOrganizer = currentUser && (event.organizer === currentUser.id || event.organizer === currentUser.email);
             const isJoined = currentUser && (isOrganizer || (event.participants && event.participants.some(p => p.id === currentUser.id)));
             const canDelete = isOrganizer || auth.hasPermission('canManageEvents');
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         </button>
 
                         ${isJoined
-                            ? `
+                    ? `
                                 <button class="btn-join-event" onclick="openEventChat(${event.id}, '${escapeHtml(event.title)}')" style="background: var(--accent-primary);">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
                                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -702,18 +702,18 @@ document.addEventListener('DOMContentLoaded', function () {
                                 </button>
                                 ${!isOrganizer ? `<button class="btn-leave-event" onclick="leaveEvent(${event.id})">Salir</button>` : ''}
                             `
-                            : `<button class="btn-join-event" onclick="joinEvent(${event.id})" ${participantsCount >= event.maxParticipants ? 'disabled' : ''}>Unirse</button>`
-                        }
+                    : `<button class="btn-join-event" onclick="joinEvent(${event.id})" ${participantsCount >= event.maxParticipants ? 'disabled' : ''}>Unirse</button>`
+                }
 
                         ${isPrivate && (isOrganizer || auth.hasPermission('canManageEvents'))
-                            ? `<button class="btn-invite-info" onclick="viewInviteCode(${event.id})" title="Copiar link o código de invitación">🔗 Invitar</button>`
-                            : ''
-                        }
+                    ? `<button class="btn-invite-info" onclick="viewInviteCode(${event.id})" title="Copiar link o código de invitación">🔗 Invitar</button>`
+                    : ''
+                }
 
                         ${(isOrganizer || auth.hasPermission('canManageEvents'))
-                            ? `<button class="btn-settings-event" onclick="openEventSettings(${event.id})" title="Ajustes de privacidad de la sala">⚙️</button>`
-                            : ''
-                        }
+                    ? `<button class="btn-settings-event" onclick="openEventSettings(${event.id})" title="Ajustes de privacidad de la sala">⚙️</button>`
+                    : ''
+                }
 
                         ${canDelete ? `<button class="btn-delete-event" onclick="window.deleteCommunityGroup(${event.id})" title="Eliminar comunidad y sala">🗑️</button>` : ''}
                     </div>
@@ -748,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const created = community.createEvent(eventData, currentUser.id, currentUser.name);
         closeEventModal();
         document.getElementById('eventForm').reset();
-        
+
         // Si fue privado, mostrar el enlace y código de invitación de inmediato al creador
         if (created.accessType === 'private') {
             window.viewInviteCode(created.id);
@@ -834,7 +834,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (targetInput) targetInput.value = eventId || '';
 
         if (promptEl) {
-            promptEl.textContent = eventTitle 
+            promptEl.textContent = eventTitle
                 ? `Para unirte a "${eventTitle}", introduce el código o pega el enlace de invitación:`
                 : 'Pega el enlace de invitación completo o introduce el código para acceder a la sala privada:';
         }
@@ -879,9 +879,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (!targetEvent) {
-            if (errEl) { 
-                errEl.textContent = 'No se encontró ninguna sala privada con este código o enlace de invitación.'; 
-                errEl.style.display = 'block'; 
+            if (errEl) {
+                errEl.textContent = 'No se encontró ninguna sala privada con este código o enlace de invitación.';
+                errEl.style.display = 'block';
             }
             return;
         }
@@ -1199,7 +1199,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Eliminar de Supabase para que desaparezca de las demás pantallas y dispositivos
             if (window.rdslpSupabase && typeof window.rdslpSupabase.deleteCloudCommunity === 'function') {
-                await window.rdslpSupabase.deleteCloudCommunity(eventId).catch(() => {});
+                await window.rdslpSupabase.deleteCloudCommunity(eventId).catch(() => { });
             }
 
             alert('✓ Comunidad eliminada exitosamente.');
@@ -1255,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const allUsers = auth.getAllUsers ? auth.getAllUsers() : [];
             const found = allUsers.find(u => String(u.id) === String(targetUserId) || u.name === displayName);
             if (found && found.role) targetRole = found.role;
-        } catch (e) {}
+        } catch (e) { }
 
         if (badgeEl) {
             badgeEl.textContent = targetRole === 'admin' ? 'ADMINISTRADOR' : (targetRole === 'moderator' ? 'MODERADOR' : 'USUARIO');
@@ -1406,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('✓ Baneo aplicado con éxito.');
             renderComunidadSanctionsHistory(target.id);
             if (window.rdslpSupabase && window.rdslpSupabase.toggleBanUser) {
-                window.rdslpSupabase.toggleBanUser(target.id, true).catch(() => {});
+                window.rdslpSupabase.toggleBanUser(target.id, true).catch(() => { });
             }
         } else {
             alert(res.message || 'Error al suspender al usuario.');
@@ -1423,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('✓ Sanciones levantadas correctamente.');
             renderComunidadSanctionsHistory(target.id);
             if (window.rdslpSupabase && window.rdslpSupabase.toggleBanUser) {
-                window.rdslpSupabase.toggleBanUser(target.id, false).catch(() => {});
+                window.rdslpSupabase.toggleBanUser(target.id, false).catch(() => { });
             }
         } else {
             alert(res.message || 'Error al levantar sanciones.');
